@@ -208,6 +208,51 @@ def main(page: ft.Page):
             except Exception as e:
                 print(f"Error updating config: {str(e)}")
 
+
+        def excel_to_datetime(excel_serial):
+            """Convert Excel serial number to datetime string."""
+            from datetime import datetime, timedelta
+            epoch = datetime(1899, 12, 30)
+            delta = timedelta(days=int(excel_serial), seconds=int((excel_serial % 1) * 86400))
+            return (epoch + delta).strftime("%Y-%m-%d %H:%M:%S")
+
+        def datetime_to_excel(dt_str):
+            """Convert datetime string to Excel serial number."""
+            from datetime import datetime, timedelta
+            epoch = datetime(1899, 12, 30)
+            try:
+                dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+                delta = dt - epoch
+                return delta.days + (delta.seconds / 86400.0)
+            except ValueError:
+                print(f"Invalid datetime format: {dt_str}")
+                return 0
+
+        def get_init_time():
+            """Get init_time from config.json."""
+            try:
+                with open('config.json', 'r') as file:
+                    config = json.load(file)
+                    return config.get('init_time', 0)
+            except Exception as e:
+                print(f"Error reading init_time: {str(e)}")
+                return 0
+
+        def update_config_init_time(new_value):
+            """Update init_time in config.json."""
+            try:
+                with open('config.json', 'r') as file:
+                    config = json.load(file)
+                config['init_time'] = datetime_to_excel(new_value) if new_value else 0
+                with open('config.json', 'w') as file:
+                    json.dump(config, file, indent=2)
+                print(f"Updated config.json with init_time: {config['init_time']}")
+            except Exception as e:
+                print(f"Error updating init_time: {str(e)}")
+
+        init_time_serial = get_init_time()
+        init_time_display = excel_to_datetime(init_time_serial) if init_time_serial else "Not Set"
+
         # Updated layout using page.width
         return ft.Column(
             [
@@ -219,17 +264,16 @@ def main(page: ft.Page):
                             content=ft.Column(
                                 [
                                     ft.Text("Check-in Status", size=20, weight="bold"),
-                                    ft.Container(
-                                        content=create_progress_bar(),
-                                        padding=10,
-                                        border=ft.border.all(1, ft.Colors.GREY_400),
-                                        border_radius=5,
-                                    ),
+                                    create_progress_bar(),  # Assuming this is defined elsewhere
                                 ],
                                 spacing=10,
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             ),
-                            width=page.width / 3,  # Use page.width instead of ft.Page.width
-                            alignment=ft.alignment.top_left,
+                            padding=10,
+                            border=ft.border.all(1, ft.Colors.GREY_400),  # Match second and third
+                            border_radius=5,  # Match second and third
+                            width=page.width / 3,
+                            alignment=ft.alignment.center,
                         ),
                         # Second section
                         # Second section (with numeric input for npg)
@@ -238,7 +282,7 @@ def main(page: ft.Page):
                         ft.Container(
                             content=ft.Column(
                                 [
-                                    ft.Text("NPG Value", size=16, weight="bold"),
+                                    ft.Text("Number of people per group", size=16, weight="bold"),
                                     ft.Row(
                                         [
                                             ft.Slider(
@@ -254,8 +298,30 @@ def main(page: ft.Page):
                                             ),
                                             ft.Text(str(get_checkin_data()[2] if len(get_checkin_data()) > 2 else 0)),  # Initial value
                                         ],
-                                        alignment=ft.MainAxisAlignment.START,
+                                        alignment=ft.MainAxisAlignment.CENTER,
                                         spacing=10,
+                                    ),
+                                ],
+                                spacing=10,
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            ),
+                            padding=10,
+                            border=ft.border.all(1, ft.Colors.GREY_400),
+                            border_radius=5,
+                            width=page.width / 3,
+                            alignment=ft.alignment.center,
+                            
+                        ),
+                        # Third section
+                        ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.Text("Start Time", size=16, weight="bold"),
+                                    ft.TextField(
+                                        label="(YYYY-MM-DD HH:MM:SS)",
+                                        value=init_time_display,
+                                        on_change=lambda e: update_config_init_time(e.control.value),
+                                        width=200,
                                     ),
                                 ],
                                 spacing=10,
@@ -264,16 +330,7 @@ def main(page: ft.Page):
                             border=ft.border.all(1, ft.Colors.GREY_400),
                             border_radius=5,
                             width=page.width / 3,
-                            alignment=ft.alignment.top_center,
-                        ),
-                        # Third section
-                        ft.Container(
-                            content=ft.Text("Section 3 Content"),
-                            padding=10,
-                            border=ft.border.all(1, ft.Colors.GREY_400),
-                            border_radius=5,
-                            width=page.width / 3,  # Use page.width
-                            alignment=ft.alignment.top_center,
+                            alignment=ft.alignment.center,
                         ),
                     ],
                     alignment=ft.MainAxisAlignment.START,
