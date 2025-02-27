@@ -2,6 +2,9 @@ import flet as ft
 import re
 import pandas as pd
 import json  # Import json to read the config file
+import math
+from flet.canvas import Canvas  # Import Canvas from flet.canvas
+from flet import Stack, Paint
 
 # 提取 Sheet ID
 def extract_sheet_id(url):
@@ -89,51 +92,218 @@ def main(page: ft.Page):
     def second_page():
         print("Rendering second page...")
         
-        # Function to read and display the config file
-        def read_config():
+        # Function to read config and get interview numbers
+        def get_checkin_data():
             try:
                 with open('config.json', 'r') as file:
                     config = json.load(file)
-                    return ft.Text(f"Config: {json.dumps(config, indent=2)}")
+                    total = config.get('total_interview', 100)
+                    checked_in = config.get('number_of_checked_in', 0)
+                    npg = config.get('npg', 0)  # Default to 0 if not found
+                    return total, checked_in, npg
             except Exception as e:
-                return ft.Text(f"Error reading config file: {str(e)}")
+                print(f"Error reading config: {str(e)}")
+                return 100, 0, 0  # Default values in case of error
+
+        # Get the data
+        total_interviews, checked_in, npg = get_checkin_data()
         
-        # First Row: Config Section
-        config_section = ft.Container(
-            content=read_config(),
-            padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_400),
-            border_radius=5,
-            width=500
-        )
+        # Create horizontal progress bar
+        def create_progress_bar():
+            original_width = 500
+            scale_factor = 2.5
+            width = original_width / scale_factor  # New width = 200 pixels
+            height = 30  # Revert to original height = 30 pixels
+            
+            # Log the inputs for verification
+            print(f"Debug - Checked In: {checked_in}, Total Interviews: {total_interviews}")
+            
+            # Calculate progress width, ensuring correct proportion
+            proportion = checked_in / total_interviews if total_interviews > 0 else 0
+            progress_width = min(proportion * width, width)  # Cap at new max width
+            indicator_position = min(progress_width - (2 / scale_factor), width - (4 / scale_factor))  # Scale indicator offsets
+            
+            # Log the calculated values
+            print(f"Debug - Proportion: {proportion}, Progress Width: {progress_width}, Indicator Position: {indicator_position}")
+            
+            # Create the blue bar container
+            blue_bar = ft.Container(
+                width=progress_width,
+                height=height,
+                bgcolor=ft.Colors.BLUE_500,
+                border_radius=5 / scale_factor,
+            )
+            
+            # Log blue bar properties after creation
+            print(f"Debug - Blue Bar Config - Width: {blue_bar.width}, Height: {blue_bar.height}, BGCOLOR: {blue_bar.bgcolor}")
+            
+            # Assemble the full progress bar
+            progress_bar = ft.Container(
+                content=ft.Column(
+                    [
+                        # Progress bar with grey background and text overlay
+                        ft.Container(
+                            content=ft.Stack(
+                                controls=[
+                                    ft.Row(
+                                        [
+                                            blue_bar,
+                                        ],
+                                        alignment=ft.MainAxisAlignment.START,
+                                        spacing=0,
+                                    ),
+                                    ft.Container(
+                                        content=ft.Text(
+                                            f"Checked In: {checked_in}/{total_interviews}",
+                                            size=12,  # Increased size for readability (adjust as needed)
+                                            color=ft.Colors.RED_500,  # Changed to red
+                                            weight=ft.FontWeight.BOLD,
+                                            text_align=ft.TextAlign.CENTER,
+                                        ),
+                                        width=width,
+                                        height=height,
+                                        alignment=ft.alignment.center,
+                                    ),
+                                ],
+                            ),
+                            width=width,
+                            height=height,
+                            bgcolor=ft.Colors.GREY_300,
+                            border_radius=5 / scale_factor,
+                        ),
+                        # Indicator as a separate layer
+                        ft.Stack(
+                            controls=[
+                                ft.Container(
+                                    left=indicator_position,
+                                    content=ft.Container(
+                                        width=4 / scale_factor,  # Red line width = 1.6 pixels
+                                        height=height + 10,  # Match original height adjustment
+                                        bgcolor=ft.Colors.RED_500
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ],
+                    spacing=0,
+                ),
+                width=width,
+                height=height + 10,  # Adjust total height to match original offset
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            )
+            
+            # Log the outer container properties
+            print(f"Debug - Outer Container - Width: {progress_bar.width}, Height: {progress_bar.height}, Clip Behavior: {progress_bar.clip_behavior}")
+            
+            return progress_bar
         
-        # Second Row: Placeholder for other content
-        second_row = ft.Container(
-            content=ft.Text("Second Row Content"),
-            padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_400),
-            border_radius=5,
-            width=500
-        )
-        
-        # Third Row: Placeholder for other content
-        third_row = ft.Container(
-            content=ft.Text("Third Row Content"),
-            padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_400),
-            border_radius=5,
-            width=500
-        )
-        
+        def update_config_npg(new_value):
+            try:
+                with open('config.json', 'r') as file:
+                    config = json.load(file)
+                config['npg'] = int(new_value) if new_value else 0  # Convert to int, default to 0 if empty
+                with open('config.json', 'w') as file:
+                    json.dump(config, file, indent=2)
+                print(f"Updated config.json with npg: {config['npg']}")
+            except Exception as e:
+                print(f"Error updating config: {str(e)}")
+
+        # Updated layout using page.width
         return ft.Column(
             [
-                ft.Text("Second Page", size=20, weight="bold"),
-                config_section,
-                second_row,
-                third_row,
-                ft.ElevatedButton(text="Go Back to First Page", bgcolor="red", on_click=on_go_back_click),
+                # First part (full width, divided into 3 sections)
+                ft.Row(
+                    [
+                        # First section (with progress bar)
+                        ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.Text("Check-in Status", size=20, weight="bold"),
+                                    ft.Container(
+                                        content=create_progress_bar(),
+                                        padding=10,
+                                        border=ft.border.all(1, ft.Colors.GREY_400),
+                                        border_radius=5,
+                                    ),
+                                ],
+                                spacing=10,
+                            ),
+                            width=page.width / 3,  # Use page.width instead of ft.Page.width
+                            alignment=ft.alignment.top_left,
+                        ),
+                        # Second section
+                        # Second section (with numeric input for npg)
+                        # Second section (with slider for npg)
+                        # Second section (with slider and current value display)
+                        ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.Text("NPG Value", size=16, weight="bold"),
+                                    ft.Row(
+                                        [
+                                            ft.Slider(
+                                                min=0,
+                                                max=6,
+                                                value=get_checkin_data()[2] if len(get_checkin_data()) > 2 else 0,
+                                                on_change=lambda e: [
+                                                    update_config_npg(e.control.value),
+                                                    e.control.parent.controls[1].__setattr__('value', str(int(e.control.value))),
+                                                    page.update()
+                                                ],  # Update config and text
+                                                width=200,
+                                            ),
+                                            ft.Text(str(get_checkin_data()[2] if len(get_checkin_data()) > 2 else 0)),  # Initial value
+                                        ],
+                                        alignment=ft.MainAxisAlignment.START,
+                                        spacing=10,
+                                    ),
+                                ],
+                                spacing=10,
+                            ),
+                            padding=10,
+                            border=ft.border.all(1, ft.Colors.GREY_400),
+                            border_radius=5,
+                            width=page.width / 3,
+                            alignment=ft.alignment.top_center,
+                        ),
+                        # Third section
+                        ft.Container(
+                            content=ft.Text("Section 3 Content"),
+                            padding=10,
+                            border=ft.border.all(1, ft.Colors.GREY_400),
+                            border_radius=5,
+                            width=page.width / 3,  # Use page.width
+                            alignment=ft.alignment.top_center,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
+                    expand=True,
+                ),
+                # Second part
+                ft.Container(
+                    content=ft.Text("Additional Content Here (Part 2)"),
+                    padding=10,
+                    border=ft.border.all(1, ft.Colors.GREY_400),
+                    border_radius=5,
+                    width=500,
+                    expand=True,
+                ),
+                # Third part
+                ft.Container(
+                    content=ft.ElevatedButton(
+                        text="Go Back to First Page",
+                        bgcolor="red",
+                        on_click=on_go_back_click
+                    ),
+                    padding=10,
+                    alignment=ft.alignment.center,
+                    expand=True,
+                ),
             ],
-            alignment="center",
+            alignment=ft.MainAxisAlignment.START,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+            expand=True,
         )
 
     # 事件处理函数：提交 URL
