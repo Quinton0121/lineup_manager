@@ -1,0 +1,18 @@
+{
+  "beautify JSON": "cmd + shift + j",
+  "total_interview": 826,
+  "npg": 4,
+  "init_time": 44966.42055,
+  "last_timevalue": 44999.41963,
+  "last_no": 823,
+  "number_of_checked_in": 0,
+  "number_of_not_check_in": 0,
+  "next_group": [
+    811,
+    816,
+    817,
+    823
+  ],
+  "number_of_people_interviewed": 774,
+  "file_name": 165
+}

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Interview Day Waiting list</title>
+<meta name="description" content="Description Goes Here">
+<link rel="stylesheet" href="style.css">
+    <style>
+      body {
+          
+          background-image:"./Joseph-Statue.png"
+      
+      }
+  
+      .st_photo{
+          position: fixed;
+          right:0;
+          opacity: 0.2;
+          height: 90%;
+      }
+  
+      .logo{
+          height: 15%;
+          background-color: white;
+          position: absolute;
+          display:flex;
+          flex-direction: row;
+          align-items: center;
+      }
+  
+      .logo_img{
+          POSITION: RELATIVE;
+          HEIGHT: 80%;
+          
+      }
+  
+      .sname{
+          /* font-family:"PMingLiU"; */
+          font-family: serif;
+          font-size:xx-large;
+          margin: 0;
+          font-weight: bold;
+          color: #FF9933;
+          font-size: 3vw;
+          
+      }
+  
+      .sname_box{
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+      }
+  
+      .space-between {
+          justify-content: space-between;
+      }
+  
+      .sename{
+          font-family:Arial, sans-serif;
+          font-weight: 100;
+          font-size:x-large;
+          color: #FF9933;
+          margin-top: 5px;
+          
+      }
+  
+      .stext{
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: flex-end;
+          margin-left: 2vw;
+      }
+  
+      table, th, td {
+      border: 0px solid;
+      }
+  
+      table{
+      position: relative;
+      width: 75vw;
+      height: 60vh;
+      top: 3vh;
+      }
+  
+      .placeholder{
+          height: 10vh;
+          width: 3vw;
+      }
+  
+      .flex{
+          display: flex;
+      }
+  
+      .sub_text{
+          font-family: serif;
+          font-size:xx-large;
+          margin: 0;
+          font-weight: bold;
+          color: #4DAF8F;
+      }
+  
+      .sub_text_box{
+          display: flex;
+          flex-direction: column;
+          margin-left: 3vw;
+      }
+  
+      .green{
+          color:#4DAF8F
+      }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  #btnControl1,
+  #btnControl2,
+  #btnControl3,
+  #btnControl4,
+  #btnControl5,
+  #btnControl6 {
+      display: none;
+  }
+  
+  
+  .flip-card1,
+  .flip-card2,
+  .flip-card3,
+  .flip-card4,
+  .flip-card5,
+  .flip-card6 {
+    background-color: transparent;
+    width: 25vw;
+    height: 30vh;
+     perspective: 1000px;
+  }
+  
+  .flip-card-inner1,
+  .flip-card-inner2,
+  .flip-card-inner3,
+  .flip-card-inner4,
+  .flip-card-inner5,
+  .flip-card-inner6 {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 1s;
+    transform-style: preserve-3d;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.3);
+  }
+  
+  
+  
+  #btnControl1:checked + label > .flip-card1 .flip-card-inner1{
+    transform: rotateX(900deg);
+  }
+  
+  #btnControl2:checked + label > .flip-card2 .flip-card-inner2{
+    transform: rotateX(900deg);
+  }
+  #btnControl3:checked + label > .flip-card3 .flip-card-inner3{
+    transform: rotateX(900deg);
+  }
+  #btnControl4:checked + label > .flip-card4 .flip-card-inner4{
+    transform: rotateX(900deg);
+  }
+  #btnControl5:checked + label > .flip-card5 .flip-card-inner5{
+    transform: rotateX(900deg);
+  }
+  #btnControl6:checked + label > .flip-card6 .flip-card-inner6{
+    transform: rotateX(900deg);
+  }
+  
+  /* .flip-card:hover .flip-card-inner {
+    transform: rotateX(900deg);
+  } */
+  
+  .flip-card-front, .flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }  
+  
+  .flip-card-front {
+    background-color: #ee6b6e;color: black;
+    
+  }
+  
+  .flip-card-back {
+    background-color: #2980b9;color: white;
+    
+    transform: rotateX(900deg);
+  }
+  
+  .super-font{
+      font-size:8em;
+  }
+  
+  </style>
+  
+  </head>
+  <body>
+      
+  
+      <audio id="myAudio" autoplay="">
+          <!-- <source src="example.mp3"> -->
+          <source src="mixkit.wav">
+    </audio>
+
+    <audio id="english_speech">
+        <!-- <source src="example.mp3"> -->
+    
+        <source src="english_speech.mp3">
+
+  </audio>
+
+  <audio id="cantonese_speech">
+    <!-- <source src="example.mp3"> -->
+
+    <source src="cantonese_speech.mp3">
+
+</audio>
+
+  <audio id="chinese_speech">
+    <!-- <source src="example.mp3"> -->
+
+    <source src="chinese_speech.mp3">
+
+</audio>
+    
+      <img class="st_photo" src="./Joseph-Statue.png">
+      <div class="logo">
+        
+              <img class="logo_img" src="./Logo.png">
+   
+          <div class="stext">
+              <div class="sname_box space-between">
+                  <div class="sname">聖</div>
+                  <div class="sname">若</div>
+                  <div class="sname">瑟</div>
+                  <div class="sname">教</div>
+                  <div class="sname">區</div>
+                  <div class="sname">中</div>
+                  <div class="sname">學</div>
+              </div>
+              <h3 class="sename">COLÉGIO DIOCESANO DE SÃO JOSÊ</h3>
+          </div>
+          <div style="margin-left: 8vw;"></div>
+          <div class="stext">
+            <div class="sname_box space-between">
+                <div class="sname green">英</div>
+                <div class="sname green">文</div>
+                <div class="sname green">部</div>
+                <div class="sname green">幼</div>
+                <div class="sname green">稚</div>
+                <div class="sname green">園</div>
+                <div class="sname green">入</div>
+                <div class="sname green">學</div>
+                <div class="sname green">面</div>
+                <div class="sname green">試</div>
+            </div>
+            <h3 class="sename green">Kindergarten(English Section) Interview Day</h3>
+        </div>
+          <!-- <div class="stext">
+              <div class="sname_box space-between">
+                  <div class="sub_text">英</div>
+                  <div class="sub_text">文</div>
+                  <div class="sub_text">部</div>
+                  <div class="sub_text">幼</div>
+                  <div class="sub_text">稚</div>
+                  <div class="sub_text">園</div>
+                  <div class="sub_text">入</div>
+                  <div class="sub_text">學</div>
+                  <div class="sub_text">面</div> -->
+                  <!-- <div class="sub_text">試</div> -->
+              </div>
+              <h3 class="sename green">Kindergarten(English Section) Interview Day</h3>
+          </div>
+          
+      </div>
+      <div class="placeholder"></div>
+  
+    
+      <div style="margin-top: 4vh;margin-left:1vw;font-size:-webkit-xxx-large;color:darkgray;">請以下編碼的家長到台前集合:</div>
+      <div style="margin-left:1vw;font-size:x-large;color:darkgray;">Parents with the following numbers please come to the front for the next interview:</div>
+  
+      <table style="margin-left:1vw;">
+          <tbody><tr>
+            <td>
+              <input type="checkbox" id="btnControl1">
+                  <label class="btn" for="btnControl1">
+                      <div class="flip-card1">
+                          <div class="flip-card-inner1">
+                          <div class="flip-card-front">
+                              <h1 class="super-font" id="Qoos1">814</h1>
+                          </div>
+                          <div class="flip-card-back">
+                              <h1 class="super-font" id="Qoos2">811</h1>
+                          </div>
+                      </div>
+                   
+  
+            </div></label></td>
+            <td>
+  
+              <input type="checkbox" id="btnControl2">
+              <label class="btn" for="btnControl2">
+                  <div class="flip-card2">
+                      <div class="flip-card-inner2">
+                      <div class="flip-card-front">
+                          <h1 class="super-font" id="Qoos3">209</h1>
+                      </div>
+                      <div class="flip-card-back">
+                          <h1 class="super-font" id="Qoos4">816</h1>
+                      </div>
+                  </div>
+               
+                   
+            </div></label></td>
+            <td>
+  
+              <input type="checkbox" id="btnControl3">
+                  <label class="btn" for="btnControl3">
+                      <div class="flip-card3">
+                          <div class="flip-card-inner3">
+                            <div class="flip-card-front">
+                                <h1 class="super-font" id="Qoos5">812</h1>
+                            </div>
+                            <div class="flip-card-back">
+                                <h1 class="super-font" id="Qoos6">817</h1>
+                            </div>
+                      </div>
+                   
+            </div></label></td>
+          </tr>
+          <tr>
+            <td>
+              <input type="checkbox" id="btnControl4">
+                  <label class="btn" for="btnControl4">
+                      <div class="flip-card4">
+                          <div class="flip-card-inner4">
+                            <div class="flip-card-front">
+                                <h1 class="super-font" id="Qoos7">825</h1>
+                            </div>
+                            <div class="flip-card-back">
+                                <h1 class="super-font" id="Qoos8">823</h1>
+                            </div>
+                      </div>
+                   
+  
+            </div></label></td>
+            <td>
+              <input type="checkbox" id="btnControl5">
+                  <label class="btn" for="btnControl5">
+                      <div class="flip-card5">
+                          <div class="flip-card-inner5">
+                            <div class="flip-card-front">
+                                <h1 class="super-font" id="Qoos9">826</h1>
+                            </div>
+                            <div class="flip-card-back">
+                                <h1 class="super-font" id="Qoos10">000</h1>
+                            </div>
+                      </div>
+                   
+            </div></label></td>
+            <td>
+              <input type="checkbox" id="btnControl6">
+                  <label class="btn" for="btnControl6">
+                      <div class="flip-card6">
+                          <div class="flip-card-inner6">
+                            <div class="flip-card-front">
+                                <h1 class="super-font" id="Qoos11">000</h1>
+                            </div>
+                            <div class="flip-card-back">
+                                <h1 class="super-font" id="Qoos12">000</h1>
+                            </div>
+                      </div>
+                   
+  
+            </div></label></td>
+          </tr>
+  
+      </tbody></table>
+  
+  
+      
+    <script>
+      function doHover1(){
+          document.getElementById('btnControl1').click();
+      }
+      function doHover2(){
+          document.getElementById('btnControl2').click();
+      }
+      function doHover3(){
+          document.getElementById('btnControl3').click();
+      }
+      function doHover4(){
+          document.getElementById('btnControl4').click();
+      }
+      function doHover5(){
+          document.getElementById('btnControl5').click();
+      }
+      function doHover6(){
+          document.getElementById('btnControl6').click();
+      }
+
+      const audio1 = document.getElementById("cantonese_speech");
+      const audio2 = document.getElementById("english_speech");
+      const audio3 = document.getElementById("chinese_speech");
+
+      setTimeout(function() {
+            audio1.play();
+        }, 1300);
+  
+      setTimeout(function() {
+            audio2.play();
+        }, 6500);
+
+        setTimeout(function() {
+            audio3.play();
+        }, 11900);
+      
+  
+      setTimeout(doHover1,1000);
+      setTimeout(doHover2,1200);
+      setTimeout(doHover3,1400);
+      setTimeout(doHover4,1600);
+      setTimeout(doHover5,1800);
+      setTimeout(doHover6,2000);
+      
+    </script>
+  
+  
+  </body></html>
+
