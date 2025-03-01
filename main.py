@@ -53,13 +53,7 @@ def main(page: ft.Page):
     def on_next_page_click(e):
         print("Navigating to second page...")
         page.clean()
-        page.add(second_page(page, fetched_data))  # Pass page and data
-        page.update()
-
-    def on_go_back_click(e):
-        print("Navigating back to first page...")
-        page.clean()
-        page.add(first_page(page, url_input, result_text, submit_button, next_page_button, data_list_view))
+        page.add(second_page(page, fetched_data, url_input, result_text, submit_button, next_page_button, data_list_view))
         page.update()
 
     submit_button.on_click = on_submit_click
