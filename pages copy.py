@@ -42,120 +42,78 @@ def update_checked_in_number(data, df=None):
 
     with open("config.json", "r") as f:
         config = json.load(f)
-        config["number_of_checked_in"] = checked_in_count
+    config["number_of_checked_in"] = checked_in_count
     with open("config.json", "w") as f:
         json.dump(config, f, indent=4)
     return checked_in_count, df
 
 def get_next_lineup(df, npg, interviewed):
-    # Let the user know we're starting to fetch the next group
-    print(f"Starting to fetch the next group of {npg} people...")
-
-    # Step 1: Find people who checked in but haven't been interviewed yet
-    checked_in = df["Checked In"].isin([True, "Yes", 1, "TRUE"])  # Who’s checked in?
-    not_interviewed = ~df["No"].isin(interviewed)  # Who hasn’t been called yet?
-    available_people = df[checked_in & not_interviewed]  # Combine the filters
-
-    # Step 2: Sort them by check-in time (earliest first)
-    sorted_people = available_people.sort_values("timevalue")
-    
-    # Step 3: Pick the top 'npg' people for the next group
-    next_group = sorted_people.head(npg)
-    
-    # Step 4: Warn if we don’t have enough people
+    print(f"Fetching next lineup with npg={npg}...")
+    available = df[(df["Checked In"].isin([True, "Yes", 1, "TRUE"])) & (~df["No"].isin(interviewed))].sort_values("timevalue")
+    next_group = available.head(npg)
     if len(next_group) < npg:
-        print(f"Warning: Only found {len(next_group)} people, but we need {npg}!")
-    
-    # Step 5: Return the group with just the info we need
-    group_info = next_group[["No", "中文姓名", "timevalue"]].to_dict('records')
-    print(f"Next group ready: {[person['No'] for person in group_info]}")
-    return group_info
+        print(f"Warning: Only {len(next_group)} available, less than npg={npg}")
+    return next_group[["No", "中文姓名", "timevalue"]].to_dict('records')
 
 def write_html():
-    # Announce that we’re updating the HTML file
-    print("Updating the HTML file now...")
+    print("Writing HTML file...")
+    with open('config.json', 'r') as f:
+        config = json.load(f)
 
-    # Step 1: Load the latest config and data files
-    with open('config.json', 'r') as config_file:
-        config = json.load(config_file)
-    with open('data.json', 'r') as data_file:
-        data = json.load(data_file)
+    # Previous group numbers (front cards)
+    temp_number = ["000", "000", "000", "000", "000", "000"]
+    total_npg = sum(data["npg"])
+    if len(data["npg"]) >= 2:  # At least two groups for a previous one
+        prev_group_size = data["npg"][-2]  # Size of the second-to-last group
+        curr_group_size = data["npg"][-1]  # Size of the last (current) group
+        prev_group_start = total_npg - curr_group_size - prev_group_size
+        for i in range(min(prev_group_size, 6)):
+            if prev_group_start + i >= 0 and prev_group_start + i < len(data["line"]):
+                temp_number[i] = str(data['line'][prev_group_start + i])
+    elif len(data["npg"]) == 1:  # First group case, no previous group yet
+        temp_number = ["000", "000", "000", "000", "000", "000"]
 
-    # Step 2: Get the previous group for the front cards (before flip)
-    front_numbers = ["000", "000", "000", "000", "000", "000"]  # Default empty group
-    if len(data["npg"]) >= 2:  # Check if we have at least two groups
-        prev_size = data["npg"][-2]  # How big was the previous group?
-        current_start = len(data["line"]) - data["npg"][-1]  # Where the current group starts
-        prev_start = current_start - prev_size  # Where the previous group starts
-        for i in range(min(prev_size, 6)):  # Fill up to 6 slots
-            if prev_start + i >= 0 and prev_start + i < len(data["line"]):
-                front_numbers[i] = str(data['line'][prev_start + i])  # Grab the number
-    elif len(data["npg"]) == 1:
-        print("Only one group so far, front stays all zeros.")
-    
-    # Unpack the previous group numbers
-    front1, front2, front3, front4, front5, front6 = front_numbers
-    print(f"Front cards (before flip) will show: {front_numbers}")
+    number_on_card1, number_on_card2, number_on_card3, number_on_card4, number_on_card5, number_on_card6 = temp_number
+    print(f"Previous group (front): {temp_number}")
 
-    # Step 3: Get the current group for the back cards (after flip)
-    current_numbers = [str(person["No"]) for person in config["current_lineup"]]  # Current group from config
-    current_count = len(current_numbers)  # How many people in this group?
-    back_numbers = current_numbers + ["000"] * (6 - current_count)  # Pad with zeros to 6
-    back1, back2, back3, back4, back5, back6 = back_numbers  # Unpack for clarity
-    print(f"Back cards (after flip) will show: {back_numbers}")
+    # Current group numbers (back cards)
+    current_group = [str(person["No"]) for person in config["current_lineup"]]
+    group_len = len(current_group)
+    card_num = current_group + ["000"] * (6 - group_len)
+    print(f"Current group (back): {card_num}")
 
-    # Step 4: Read the current HTML file
-    with open('index.html', 'r', encoding='utf-8') as html_file:
-        html_content = html_file.read()
-    print(f"Current HTML snippet (before changes): {html_content[html_content.index('id=\"Qoos1\"'):html_content.index('id=\"Qoos12\"')+50]}")
+    # Read and modify HTML
+    with open('index.html', 'r', encoding='utf-8') as f:
+        html_string = f.read()
+    print(f"HTML before update (first 500 chars): {html_string[:500]}")  # Debug original content
 
-    # Step 5: Update the numbers in the HTML, keeping the <h1> tags intact
-    html_content = re.sub(r'(id="Qoos1">)[^<]*(</h1>)', r'\1' + front1 + r'\2', html_content)  # Front card 1
-    html_content = re.sub(r'(id="Qoos2">)[^<]*(</h1>)', r'\1' + back1 + r'\2', html_content)   # Back card 1
-    html_content = re.sub(r'(id="Qoos3">)[^<]*(</h1>)', r'\1' + front2 + r'\2', html_content)  # Front card 2
-    html_content = re.sub(r'(id="Qoos4">)[^<]*(</h1>)', r'\1' + back2 + r'\2', html_content)   # Back card 2
-    html_content = re.sub(r'(id="Qoos5">)[^<]*(</h1>)', r'\1' + front3 + r'\2', html_content)  # Front card 3
-    html_content = re.sub(r'(id="Qoos6">)[^<]*(</h1>)', r'\1' + back3 + r'\2', html_content)   # Back card 3
-    html_content = re.sub(r'(id="Qoos7">)[^<]*(</h1>)', r'\1' + front4 + r'\2', html_content)  # Front card 4
-    html_content = re.sub(r'(id="Qoos8">)[^<]*(</h1>)', r'\1' + back4 + r'\2', html_content)   # Back card 4
-    html_content = re.sub(r'(id="Qoos9">)[^<]*(</h1>)', r'\1' + front5 + r'\2', html_content)  # Front card 5
-    html_content = re.sub(r'(id="Qoos10">)[^<]*(</h1>)', r'\1' + back5 + r'\2', html_content)  # Back card 5
-    html_content = re.sub(r'(id="Qoos11">)[^<]*(</h1>)', r'\1' + front6 + r'\2', html_content) # Front card 6
-    html_content = re.sub(r'(id="Qoos12">)[^<]*(</h1>)', r'\1' + back6 + r'\2', html_content)  # Back card 6
+    # Ensure unique replacements for each QoosX ID
+    html_string = re.sub(r'id="Qoos1">[0-9.]*</h1>', f'id="Qoos1">{number_on_card1}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos2">[0-9.]*</h1>', f'id="Qoos2">{card_num[0]}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos3">[0-9.]*</h1>', f'id="Qoos3">{number_on_card2}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos4">[0-9.]*</h1>', f'id="Qoos4">{card_num[1]}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos5">[0-9.]*</h1>', f'id="Qoos5">{number_on_card3}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos6">[0-9.]*</h1>', f'id="Qoos6">{card_num[2]}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos7">[0-9.]*</h1>', f'id="Qoos7">{number_on_card4}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos8">[0-9.]*</h1>', f'id="Qoos8">{card_num[3]}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos9">[0-9.]*</h1>', f'id="Qoos9">{number_on_card5}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos10">[0-9.]*</h1>', f'id="Qoos10">{card_num[4]}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos11">[0-9.]*</h1>', f'id="Qoos11">{number_on_card6}</h1>', html_string)
+    html_string = re.sub(r'id="Qoos12">[0-9.]*</h1>', f'id="Qoos12">{card_num[5]}</h1>', html_string)
+    html_string = html_string.replace('#ee6b6e;color: black;', 'QoosColor1')
+    html_string = html_string.replace('#2980b9;color: white;', 'QoosColor2')
+    html_string = html_string.replace('QoosColor2', '#ee6b6e;color: black;')
+    html_string = html_string.replace('QoosColor1', '#2980b9;color: white;')
 
-    # Step 6: Swap card colors (red to blue, blue to red)
-    last_front_color = config.get("last_front_color", "#ee6b6e")  # What color was front last time? Default red
-    new_front_color = "#2980b9" if last_front_color == "#ee6b6e" else "#ee6b6e"  # Swap it
-    new_back_color = "#ee6b6e" if new_front_color == "#2980b9" else "#2980b9"     # Opposite for back
-    front_text_color = "black" if new_front_color == "#ee6b6e" else "white"       # Text color for readability
-    back_text_color = "white" if new_back_color == "#2980b9" else "black"
+    with open("index.html", "w", encoding='utf-8') as file:
+        file.write(html_string)
+    print("HTML file updated")
 
-    # Apply the new colors to the cards
-    html_content = re.sub(
-        r'flip-card-front[^>]*background-color:[^;]*;',
-        f'flip-card-front {{ background-color: {new_front_color}; color: {front_text_color};',
-        html_content
-    )
-    html_content = re.sub(
-        r'flip-card-back[^>]*background-color:[^;]*;',
-        f'flip-card-back {{ background-color: {new_back_color}; color: {back_text_color}; transform: rotateX(900deg);',
-        html_content
-    )
+    # Verify written content
+    with open("index.html", "r", encoding='utf-8') as f:
+        updated_html = f.read()
+    print(f"HTML after update (first 500 chars): {updated_html[:500]}")
 
-    # Step 7: Save the new front color for next time
-    config["last_front_color"] = new_front_color
-    with open("config.json", "w") as config_file:
-        json.dump(config, config_file, indent=4)
-
-    # Step 8: Write the updated HTML to the file
-    with open("index.html", "w", encoding='utf-8') as html_file:
-        html_file.write(html_content)
-    print("Finished updating the HTML file!")
-
-    # Step 9: Show the updated HTML snippet
-    with open("index.html", "r", encoding='utf-8') as html_file:
-        updated_html = html_file.read()
-    print(f"New HTML snippet (after changes): {updated_html[updated_html.index('id=\"Qoos1\"'):updated_html.index('id=\"Qoos12\"')+50]}")
 
 def second_page(page, data=None, url_input=None, result_text=None, submit_button=None, next_page_button=None, data_list_view=None):
     print("Rendering second page...")
@@ -193,32 +151,42 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
         spacing=5
     )
 
-    def on_lineup_click(e):
-        print("Lineup button clicked...")
-        with open("config.json", "r") as f:
-            config = json.load(f)
-        current_npg = config["npg"]
-        print(f"Using npg={current_npg} for lineup")
+    def on_lineup_click(event):
+    print("You clicked the Lineup button!")
+    with open("config.json", "r") as config_file:
+        config = json.load(config_file)
+    current_npg = config["npg"]  # Number per group
+    print(f"Fetching {current_npg} people for the lineup...")
 
-        new_checked_in, df = update_checked_in_number(None)
-        if isinstance(df, str):
-            print(f"Failed to fetch sheet: {df}")
-            current_lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
+    # Update checked-in count and get data
+    new_checked_in, df = update_checked_in_number(None)
+    if isinstance(df, str):  # If data fetch fails
+        print(f"Problem fetching data: {df}")
+        lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
+    else:
+        # Get the next group
+        next_group = get_next_lineup(df, current_npg, interviewed)
+        if not next_group:  # If no one’s left
+            lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
         else:
-            next_group = get_next_lineup(df, current_npg, interviewed)
-            if not next_group:
-                current_lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
-            else:
-                group_number = len(config.get("lineup_history", [])) + 1
-                current_lineup[:] = next_group
-                interviewed.extend([person["No"] for person in next_group])
-                config["current_lineup"] = current_lineup
-                config["interviewed"] = interviewed
-                lineup_history.append({
-                    "group_number": group_number,
-                    "people": next_group,
-                    "npg": current_npg
-                })
+            # Convert "No" to integer for each person in next_group
+            for person in next_group:
+                person["No"] = int(person["No"])  # Remove decimal by converting to int
+
+            # Update group number and config
+            group_number = len(config.get("lineup_history", [])) + 1
+            current_lineup[:] = next_group  # Set new lineup
+            interviewed.extend([person["No"] for person in next_group])  # Mark them as interviewed
+            config["current_lineup"] = current_lineup
+            config["interviewed"] = interviewed
+            lineup_history.append({
+                "group_number": group_number,
+                "people": next_group,
+                "npg": current_npg
+            })
+            config["lineup_history"] = lineup_history
+            with open("config.json", "w") as config_file:
+                json.dump(config, config_file, indent=4)
                 config["lineup_history"] = lineup_history
                 with open("config.json", "w") as f:
                     json.dump(config, f, indent=4)
