@@ -1,39 +1,62 @@
-def on_lineup_click(event):
-    print("You clicked the Lineup button!")
-    with open("config.json", "r") as config_file:
-        config = json.load(config_file)
-    current_npg = config["npg"]  # Number per group
-    print(f"Fetching {current_npg} people for the lineup...")
+def write_html():
+    print("Writing HTML file (your custom version)...")
+    # Your implementation goes here
+    with open('config.json') as f:
+        new_config = json.load(f)
 
-    # Update checked-in count and get data
-    new_checked_in, df = update_checked_in_number(None)
-    if isinstance(df, str):  # If data fetch fails
-        print(f"Problem fetching data: {df}")
-        lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
-    else:
-        # Get the next group
-        next_group = get_next_lineup(df, current_npg, interviewed)
-        if not next_group:  # If no one’s left
-            lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
-        else:
-            # Convert "No" to integer for each person in next_group
-            for person in next_group:
-                person["No"] = int(person["No"])  # Remove decimal by converting to int
+    #for the beginning of the card number
+    temp_number = ["000","000","000","000","000","000"]
 
-            # Update group number and config
-            group_number = len(config.get("lineup_history", [])) + 1
-            current_lineup[:] = next_group  # Set new lineup
-            interviewed.extend([person["No"] for person in next_group])  # Mark them as interviewed
-            config["current_lineup"] = current_lineup
-            config["interviewed"] = interviewed
-            lineup_history.append({
-                "group_number": group_number,
-                "people": next_group,
-                "npg": current_npg
-            })
-            config["lineup_history"] = lineup_history
-            with open("config.json", "w") as config_file:
-                json.dump(config, config_file, indent=4)
-            
-            # Rest of the function remains unchanged...
-            # Update data file, refresh display, write HTML, etc.
+    if len(new_config['lineup_history']) >= 2:
+        prev_group = new_config["lineup_history"][-2]["people"]
+        for i, person in enumerate(prev_group[:6]):
+            temp_number[i] = str(person["No"])
+
+    #number on the back 
+    number_on_card1,number_on_card2,number_on_card3,number_on_card4,number_on_card5,number_on_card6 = temp_number
+
+
+
+    # In on_lineup_click or elsewhere
+    new_next_group = [person["No"] for person in new_config["current_lineup"]]
+    card_num = new_next_group
+    group_len = len(new_next_group)
+
+    for i in range( 6 - group_len):
+        card_num.append("000")
+    print(f'Quinton Logging************: card_num = {card_num} , temp_number = {temp_number}' )
+     #--------------------------------------------writing html--------------------------------------   
+
+    #html_string = ""
+    f = open('index.html', 'r',encoding='utf-8')
+    # writing the code into the file
+
+
+    html_string = f.read()
+
+    # close the file
+    f.close()
+    #print("card_num: ",card_num)
+    #html_string = html_string.replace('Qoos2',df_time)
+    html_string = re.sub(r'id="Qoos1">[0-9]*</h1>', 'id="Qoos1">'+str(number_on_card1)+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos2">[0-9]*</h1>', 'id="Qoos2">'+str(card_num[0])+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos3">[0-9]*</h1>', 'id="Qoos3">'+str(number_on_card2)+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos4">[0-9]*</h1>', 'id="Qoos4">'+str(card_num[1])+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos5">[0-9]*</h1>', 'id="Qoos5">'+str(number_on_card3)+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos6">[0-9]*</h1>', 'id="Qoos6">'+str(card_num[2])+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos7">[0-9]*</h1>', 'id="Qoos7">'+str(number_on_card4)+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos8">[0-9]*</h1>', 'id="Qoos8">'+str(card_num[3])+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos9">[0-9]*</h1>', 'id="Qoos9">'+str(number_on_card5)+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos10">[0-9]*</h1>', 'id="Qoos10">'+str(card_num[4])+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos11">[0-9]*</h1>', 'id="Qoos11">'+str(number_on_card6)+'</h1>', html_string)
+    html_string = re.sub(r'id="Qoos12">[0-9]*</h1>', 'id="Qoos12">'+str(card_num[5])+'</h1>', html_string)
+    html_string = html_string.replace('#ee6b6e;color: white;','QoosColor1')
+    html_string = html_string.replace('#2980b9;color: white;','QoosColor2')
+    html_string = html_string.replace('QoosColor2','#ee6b6e;color: white;')
+    html_string = html_string.replace('QoosColor1','#2980b9;color: white;')
+    
+
+    
+    
+    with open("index.html", "w",encoding='utf-8') as file:
+        file.write(html_string)

@@ -1,52 +1,59 @@
-def on_lineup_click(event):
-        print("You clicked the Lineup button!")
-        with open("config.json", "r") as config_file:
-            config = json.load(config_file)
-        current_npg = config["npg"]  # Number per group
-        print(f"Fetching {current_npg} people for the lineup...")
+def write_html():
+    print("Writing HTML file (your custom version)...")
+    try:
+        with open('config.json', 'r') as f:
+            new_config = json.load(f)
 
-        # Update checked-in count and get data
-        new_checked_in, df = update_checked_in_number(None)
-        if isinstance(df, str):  # If data fetch fails
-            print(f"Problem fetching data: {df}")
-            lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
-        else:
-            # Get the next group
-            next_group = get_next_lineup(df, current_npg, interviewed)
-            if not next_group:  # If no one’s left
-                lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
+        # For the beginning of the card number (previous group)
+        temp_number = ["000", "000", "000", "000", "000", "000"]
+        if len(new_config['lineup_history']) >= 2:
+            prev_group = new_config["lineup_history"][-2]["people"]
+            for i, person in enumerate(prev_group[:6]):
+                temp_number[i] = str(person["No"])
+        number_on_card1, number_on_card2, number_on_card3, number_on_card4, number_on_card5, number_on_card6 = temp_number
+
+        # Current lineup for next group
+        new_next_group = [person["No"] for person in new_config["current_lineup"]]
+        card_num = new_next_group
+        group_len = len(new_next_group)
+        for i in range(6 - group_len):
+            card_num.append("000")
+        print(f'Quinton Logging************: card_num = {card_num} , temp_number = {temp_number}')
+
+        # Read current HTML
+        with open('index.html', 'r', encoding='utf-8') as f:
+            html_string = f.read()
+            print("Successfully read index.html")
+
+        # Replace numbers in HTML
+        html_string = re.sub(r'id="Qoos1">[0-9]*</h1>', f'id="Qoos1">{number_on_card1}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos2">[0-9]*</h1>', f'id="Qoos2">{card_num[0]}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos3">[0-9]*</h1>', f'id="Qoos3">{number_on_card2}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos4">[0-9]*</h1>', f'id="Qoos4">{card_num[1]}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos5">[0-9]*</h1>', f'id="Qoos5">{number_on_card3}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos6">[0-9]*</h1>', f'id="Qoos6">{card_num[2]}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos7">[0-9]*</h1>', f'id="Qoos7">{number_on_card4}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos8">[0-9]*</h1>', f'id="Qoos8">{card_num[3]}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos9">[0-9]*</h1>', f'id="Qoos9">{number_on_card5}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos10">[0-9]*</h1>', f'id="Qoos10">{card_num[4]}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos11">[0-9]*</h1>', f'id="Qoos11">{number_on_card6}</h1>', html_string)
+        html_string = re.sub(r'id="Qoos12">[0-9]*</h1>', f'id="Qoos12">{card_num[5]}</h1>', html_string)
+        html_string = html_string.replace('#ee6b6e;color: white;', 'QoosColor1')
+        html_string = html_string.replace('#2980b9;color: white;', 'QoosColor2')
+        html_string = html_string.replace('QoosColor2', '#ee6b6e;color: white;')
+        html_string = html_string.replace('QoosColor1', '#2980b9;color: white;')
+
+        # Write updated HTML
+        with open("index.html", "w", encoding='utf-8') as file:
+            file.write(html_string)
+            print("HTML file successfully written to disk")
+        
+        # Verify the update
+        with open("index.html", "r", encoding='utf-8') as f:
+            updated_content = f.read()
+            if str(card_num[0]) in updated_content:
+                print("HTML file successfully updated with new numbers!")
             else:
-                # Update group number and config
-                group_number = len(config.get("lineup_history", [])) + 1
-                current_lineup[:] = next_group  # Set new lineup
-                interviewed.extend([person["No"] for person in next_group])  # Mark them as interviewed
-                config["current_lineup"] = current_lineup
-                config["interviewed"] = interviewed
-                lineup_history.append({
-                    "group_number": group_number,
-                    "people": next_group,
-                    "npg": current_npg
-                })
-                config["lineup_history"] = lineup_history
-                with open("config.json", "w") as config_file:
-                    json.dump(config, config_file, indent=4)
-                
-                # Update data file
-                with open('data.json', 'r') as data_file:
-                    data = json.load(data_file)
-                for person in next_group:
-                    data['line'].append(person["No"])  # Add to lineup history
-                data['npg'].append(current_npg)  # Record group size
-                with open('data.json', 'w') as data_file:
-                    json.dump(data, data_file, indent=4)
-
-                # Refresh the display
-                lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in current_lineup]
-                progress_box.content = ft.Column(
-                    [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, new_checked_in)],
-                    spacing=10,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                )
-                print(f"Added Group #{group_number}: {[person['No'] for person in next_group]}")
-                write_html()  # Call your custom HTML writer
-        page.update()  # Refresh the page
+                print("Error: New numbers not found in updated HTML!")
+    except Exception as e:
+        print(f"Error in write_html: {str(e)}")
