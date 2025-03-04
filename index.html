@@ -6,9 +6,7 @@
 <meta name="description" content="Description Goes Here">
 <link rel="stylesheet" href="style.css">
     <style>
-      body {
-          background-image: url("./Joseph-Statue.png");
-      }
+
   
       .st_photo {
           position: fixed;
@@ -212,10 +210,10 @@
                         <div class="flip-card1">
                             <div class="flip-card-inner1">
                                 <div class="flip-card-front">
-                                    <h1 class="super-font" id="Qoos1">000</h1>
+                                    <h1 class="super-font" id="Qoos1">387.0</h1>
                                 </div>
                                 <div class="flip-card-back">
-                                    <h1 class="super-font" id="Qoos2">127.0</h1>
+                                    <h1 class="super-font" id="Qoos2">455.0</h1>
                                 </div>
                             </div>
                         </div>
@@ -227,10 +225,10 @@
                         <div class="flip-card2">
                             <div class="flip-card-inner2">
                                 <div class="flip-card-front">
-                                    <h1 class="super-font" id="Qoos3">000</h1>
+                                    <h1 class="super-font" id="Qoos3">388.0</h1>
                                 </div>
                                 <div class="flip-card-back">
-                                    <h1 class="super-font" id="Qoos4">132.0</h1>
+                                    <h1 class="super-font" id="Qoos4">385.0</h1>
                                 </div>
                             </div>
                         </div>
@@ -242,10 +240,10 @@
                         <div class="flip-card3">
                             <div class="flip-card-inner3">
                                 <div class="flip-card-front">
-                                    <h1 class="super-font" id="Qoos5">000</h1>
+                                    <h1 class="super-font" id="Qoos5">389.0</h1>
                                 </div>
                                 <div class="flip-card-back">
-                                    <h1 class="super-font" id="Qoos6">131.0</h1>
+                                    <h1 class="super-font" id="Qoos6">000</h1>
                                 </div>
                             </div>
                         </div>
@@ -259,10 +257,10 @@
                         <div class="flip-card4">
                             <div class="flip-card-inner4">
                                 <div class="flip-card-front">
-                                    <h1 class="super-font" id="Qoos7">000</h1>
+                                    <h1 class="super-font" id="Qoos7">390.0</h1>
                                 </div>
                                 <div class="flip-card-back">
-                                    <h1 class="super-font" id="Qoos8">133.0</h1>
+                                    <h1 class="super-font" id="Qoos8">000</h1>
                                 </div>
                             </div>
                         </div>
@@ -274,7 +272,7 @@
                         <div class="flip-card5">
                             <div class="flip-card-inner5">
                                 <div class="flip-card-front">
-                                    <h1 class="super-font" id="Qoos9">000</h1>
+                                    <h1 class="super-font" id="Qoos9">434.0</h1>
                                 </div>
                                 <div class="flip-card-back">
                                     <h1 class="super-font" id="Qoos10">000</h1>
@@ -306,109 +304,124 @@
     <button onclick="speakNumbers()" style="position: fixed; bottom: 10px; right: 10px;">Speak Numbers</button>
   
     <script>
-      function doHover1(){ document.getElementById('btnControl1').click(); }
-      function doHover2(){ document.getElementById('btnControl2').click(); }
-      function doHover3(){ document.getElementById('btnControl3').click(); }
-      function doHover4(){ document.getElementById('btnControl4').click(); }
-      function doHover5(){ document.getElementById('btnControl5').click(); }
-      function doHover6(){ document.getElementById('btnControl6').click(); }
-
-      const audio1 = document.getElementById("cantonese_speech");
-      const audio2 = document.getElementById("english_speech");
-      const audio3 = document.getElementById("chinese_speech");
-
-      setTimeout(function() { audio1.play(); }, 1300);
-      setTimeout(function() { audio2.play(); }, 6500);
-      setTimeout(function() { audio3.play(); }, 11900);
-      
-      setTimeout(doHover1, 1000);
-      setTimeout(doHover2, 1200);
-      setTimeout(doHover3, 1400);
-      setTimeout(doHover4, 1600);
-      setTimeout(doHover5, 1800);
-      setTimeout(doHover6, 2000);
-
-      // Cantonese number mapping (Jyutping)
-      const cantoneseNumbers = {
-          "0": "ling4", "1": "jat1", "2": "ji6", "3": "saam1", "4": "sei3",
-          "5": "ng5", "6": "luk6", "7": "cat1", "8": "baat3", "9": "gau2"
-      };
-
-      // Mandarin number mapping (Simplified Characters)
-      const mandarinNumbers = {
-          "0": "零", "1": "一", "2": "二", "3": "三", "4": "四",
-          "5": "五", "6": "六", "7": "七", "8": "八", "9": "九"
-      };
-
-      function numberToCantonese(num) {
-          return num.split('').map(digit => cantoneseNumbers[digit]).join(' ');
-      }
-
-      function numberToMandarin(num) {
-          if (num.length > 1) {
-              // Handle multi-digit numbers (simple version)
-              if (num < 20) {
-                  return num === "10" ? "十" : "十" + mandarinNumbers[num[1]];
-              } else {
-                  return num.split('').map(digit => mandarinNumbers[digit]).join('');
-              }
-          }
-          return mandarinNumbers[num];
-      }
-
-      // Text-to-Speech for Current Lineup numbers: English -> Cantonese -> Mandarin
-      function speakNumbers() {
-          console.log("speakNumbers called");
-          const numbers = [
-              document.getElementById("Qoos2").innerText,
-              document.getElementById("Qoos4").innerText,
-              document.getElementById("Qoos6").innerText,
-              document.getElementById("Qoos8").innerText,
-              document.getElementById("Qoos10").innerText,
-              document.getElementById("Qoos12").innerText
-          ].filter(num => num !== "000");
-
-          console.log("Numbers to speak:", numbers);
-
-          if (numbers.length > 0) {
-              const englishUtterance = new SpeechSynthesisUtterance(numbers.join(", "));
-              englishUtterance.lang = 'en-US';
-              englishUtterance.rate = 1.0;
-              englishUtterance.onstart = () => console.log("English numbers started");
-              englishUtterance.onend = () => {
-                  console.log("English numbers finished, starting Cantonese");
-                  const cantoneseText = numbers.map(num => numberToCantonese(num)).join(", ");
-                  const cantoneseUtterance = new SpeechSynthesisUtterance(cantoneseText);
-                  cantoneseUtterance.lang = 'yue';
-                  cantoneseUtterance.rate = 1.0;
-                  cantoneseUtterance.onstart = () => console.log("Cantonese numbers started");
-                  cantoneseUtterance.onend = () => {
-                      console.log("Cantonese numbers finished, starting Mandarin");
-                      const mandarinText = numbers.map(num => numberToMandarin(num)).join(", ");
-                      console.log("Mandarin text to speak:", mandarinText);
-                      const mandarinUtterance = new SpeechSynthesisUtterance(mandarinText);
-                      mandarinUtterance.lang = 'zh-CN';
-                      mandarinUtterance.rate = 1.0;
-                      mandarinUtterance.onstart = () => console.log("Mandarin numbers started");
-                      mandarinUtterance.onend = () => console.log("Mandarin numbers finished");
-                      mandarinUtterance.onerror = (event) => console.error("Mandarin error:", event.error);
-                      window.speechSynthesis.speak(mandarinUtterance);
-                  };
-                  cantoneseUtterance.onerror = (event) => console.error("Cantonese error:", event.error);
-                  window.speechSynthesis.speak(cantoneseUtterance);
-              };
-              englishUtterance.onerror = (event) => console.error("English error:", event.error);
-              window.speechSynthesis.speak(englishUtterance);
-          } else {
-              console.log("No numbers to speak");
-          }
-      }
-
-      // Run on page load
-      window.onload = function() {
-          console.log("Page loaded");
-          speakNumbers();
-      };
+        function doHover1(){ document.getElementById('btnControl1').click(); }
+        function doHover2(){ document.getElementById('btnControl2').click(); }
+        function doHover3(){ document.getElementById('btnControl3').click(); }
+        function doHover4(){ document.getElementById('btnControl4').click(); }
+        function doHover5(){ document.getElementById('btnControl5').click(); }
+        function doHover6(){ document.getElementById('btnControl6').click(); }
+    
+        const audio1 = document.getElementById("cantonese_speech");
+        const audio2 = document.getElementById("english_speech");
+        const audio3 = document.getElementById("chinese_speech");
+    
+        // Reset flip state on load
+        document.getElementById('btnControl1').checked = false;
+        document.getElementById('btnControl2').checked = false;
+        document.getElementById('btnControl3').checked = false;
+        document.getElementById('btnControl4').checked = false;
+        document.getElementById('btnControl5').checked = false;
+        document.getElementById('btnControl6').checked = false;
+    
+        // Flip cards after load
+        setTimeout(doHover1, 1000);
+        setTimeout(doHover2, 1200);
+        setTimeout(doHover3, 1400);
+        setTimeout(doHover4, 1600);
+        setTimeout(doHover5, 1800);
+        setTimeout(doHover6, 2000);
+    
+        // Cantonese number mapping (Jyutping)
+        const cantoneseNumbers = {
+            "0": "ling4", "1": "jat1", "2": "ji6", "3": "saam1", "4": "sei3",
+            "5": "ng5", "6": "luk6", "7": "cat1", "8": "baat3", "9": "gau2"
+        };
+    
+        // Mandarin number mapping (Simplified Characters)
+        const mandarinNumbers = {
+            "0": "零", "1": "一", "2": "二", "3": "三", "4": "四",
+            "5": "五", "6": "六", "7": "七", "8": "八", "9": "九"
+        };
+    
+        function numberToCantonese(num) {
+            return num.split('').map(digit => cantoneseNumbers[digit]).join(' ');
+        }
+    
+        function numberToMandarin(num) {
+            if (num.length > 1) {
+                if (num < 20) {
+                    return num === "10" ? "十" : "十" + mandarinNumbers[num[1]];
+                } else {
+                    return num.split('').map(digit => mandarinNumbers[digit]).join('');
+                }
+            }
+            return mandarinNumbers[num];
+        }
+    
+        function speakNumbers() {
+            console.log("speakNumbers called");
+            const numbers = [
+                document.getElementById("Qoos2").innerText,
+                document.getElementById("Qoos4").innerText,
+                document.getElementById("Qoos6").innerText,
+                document.getElementById("Qoos8").innerText,
+                document.getElementById("Qoos10").innerText,
+                document.getElementById("Qoos12").innerText
+            ].filter(num => num !== "000");
+    
+            console.log("Numbers to speak:", numbers);
+    
+            if (numbers.length > 0) {
+                console.log("Starting sequence with Audio1");
+                audio1.play();
+                audio1.onended = () => {
+                    console.log("Audio1 finished, starting Cantonese numbers");
+                    const cantoneseText = numbers.map(num => numberToCantonese(num)).join(", ");
+                    const cantoneseUtterance = new SpeechSynthesisUtterance(cantoneseText);
+                    cantoneseUtterance.lang = 'yue';
+                    cantoneseUtterance.rate = 1.0;
+                    cantoneseUtterance.onstart = () => console.log("Cantonese numbers started");
+                    cantoneseUtterance.onend = () => {
+                        console.log("Cantonese numbers finished, starting Audio2");
+                        audio2.play();
+                        audio2.onended = () => {
+                            console.log("Audio2 finished, starting English numbers");
+                            const englishUtterance = new SpeechSynthesisUtterance(numbers.join(", "));
+                            englishUtterance.lang = 'en-US';
+                            englishUtterance.rate = 1.0;
+                            englishUtterance.onstart = () => console.log("English numbers started");
+                            englishUtterance.onend = () => {
+                                console.log("English numbers finished, starting Audio3");
+                                audio3.play();
+                                audio3.onended = () => {
+                                    console.log("Audio3 finished, starting Mandarin numbers");
+                                    const mandarinText = numbers.map(num => numberToMandarin(num)).join(", ");
+                                    console.log("Mandarin text to speak:", mandarinText);
+                                    const mandarinUtterance = new SpeechSynthesisUtterance(mandarinText);
+                                    mandarinUtterance.lang = 'zh-CN';
+                                    mandarinUtterance.rate = 1.0;
+                                    mandarinUtterance.onstart = () => console.log("Mandarin numbers started");
+                                    mandarinUtterance.onend = () => console.log("Mandarin numbers finished");
+                                    mandarinUtterance.onerror = (event) => console.error("Mandarin error:", event.error);
+                                    window.speechSynthesis.speak(mandarinUtterance);
+                                };
+                            };
+                            englishUtterance.onerror = (event) => console.error("English error:", event.error);
+                            window.speechSynthesis.speak(englishUtterance);
+                        };
+                    };
+                    cantoneseUtterance.onerror = (event) => console.error("Cantonese error:", event.error);
+                    window.speechSynthesis.speak(cantoneseUtterance);
+                };
+            } else {
+                console.log("No numbers to speak");
+            }
+        }
+    
+        window.onload = function() {
+            console.log("Page loaded");
+            setTimeout(speakNumbers, 1000);
+        }
     </script>
 </body>
 </html>

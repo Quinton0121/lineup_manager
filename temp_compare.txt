@@ -1,0 +1,46 @@
+def second_page(page, data=None, url_input=None, result_text=None, submit_button=None, next_page_button=None, data_list_view=None):
+    # ... (rest of your second_page code remains unchanged until on_lineup_click) ...
+
+    def on_lineup_click(e):
+        print("Lineup button clicked...")
+        with open("config.json", "r") as f:
+            config = json.load(f)
+        current_npg = config["npg"]
+        print(f"Using npg={current_npg} for lineup")
+
+        new_checked_in, df = update_checked_in_number(data)
+        if isinstance(df, str):
+            print(f"Failed to fetch sheet: {df}")
+            current_lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
+        else:
+            next_group = get_next_lineup(df, current_npg, interviewed)
+            if not next_group:
+                current_lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
+            else:
+                group_number = len(config.get("lineup_history", [])) + 1
+                current_lineup[:] = next_group
+                interviewed.extend([person["No"] for person in next_group])
+                config["current_lineup"] = current_lineup
+                config["interviewed"] = interviewed
+                config["lineup_history"] = lineup_history
+                with open("config.json", "w") as f:
+                    json.dump(config, f, indent=4)
+                
+                # Update data.json
+                with open('data.json', 'r') as f:
+                    data = json.load(f)
+                for person in next_group:
+                    data['line'].append(person["No"])
+                data['npg'].append(current_npg)
+                with open('data.json', 'w') as f:
+                    json.dump(data, f, indent=4)
+
+                current_lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in current_lineup]
+                progress_container.content = ft.Column(
+                    [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, new_checked_in)],
+                    spacing=10,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                )
+                print(f"Group #{group_number} added to history: {[person['No'] for person in next_group]}")
+                write_html()  # Update HTML with new numbers
+        page.update()

@@ -1,0 +1,74 @@
+def second_page(page, data=None, url_input=None, result_text=None, submit_button=None, next_page_button=None, data_list_view=None):
+    print("Rendering second page...")
+    total_interviews, checked_in, npg = get_checkin_data()
+    
+    checked_in, df = update_checked_in_number(data)
+    total_interviews = 826
+    
+    init_time_serial = get_init_time()
+    init_time_display = excel_to_datetime(init_time_serial) if init_time_serial else "Not Set"
+    data_text = ft.Text("No Google Sheet data available") if data is None or data.empty else ft.Text(f"Loaded {len(data)} rows from Google Sheet")
+
+    with open("config.json", "r") as f:
+        config = json.load(f)
+    interviewed = config.get("interviewed", [])
+    current_lineup = config.get("current_lineup", [])
+    lineup_history = config.get("lineup_history", [])
+    group_number = len(lineup_history)
+
+    progress_container = ft.Container(
+        content=ft.Column(
+            [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, checked_in)],
+            spacing=10,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=10,
+        border=ft.border.all(1, ft.Colors.GREY_400),
+        border_radius=5,
+        width=page.width / 3,
+        alignment=ft.alignment.center,
+    )
+
+    current_lineup_display = ft.Column(
+        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in current_lineup] if current_lineup else [ft.Text("No current lineup")],
+        spacing=5
+    )
+
+    def on_lineup_click(e):
+        print("Lineup button clicked...")
+        with open("config.json", "r") as f:
+            config = json.load(f)
+        current_npg = config["npg"]
+        print(f"Using npg={current_npg} for lineup")
+
+        new_checked_in, df = update_checked_in_number(data)
+        if isinstance(df, str):
+            print(f"Failed to fetch sheet: {df}")
+            current_lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
+        else:
+            next_group = get_next_lineup(df, current_npg, interviewed)
+            if not next_group:
+                current_lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
+            else:
+                group_number = len(config.get("lineup_history", [])) + 1
+                current_lineup[:] = next_group
+                interviewed.extend([person["No"] for person in next_group])
+                lineup_history.append({
+                    "group_number": group_number,
+                    "people": next_group,
+                    "npg": current_npg
+                })
+                config["current_lineup"] = current_lineup
+                config["interviewed"] = interviewed
+                config["lineup_history"] = lineup_history
+                with open("config.json", "w") as f:
+                    json.dump(config, f, indent=4)
+                current_lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in current_lineup]
+                progress_container.content = ft.Column(
+                    [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, new_checked_in)],
+                    spacing=10,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                )
+                print(f"Group #{group_number} added to history: {[person['No'] for person in next_group]}")
+                write_html()
+        page.update()
