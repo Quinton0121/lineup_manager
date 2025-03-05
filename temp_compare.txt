@@ -1,62 +1,377 @@
-def write_html():
-    print("Writing HTML file (your custom version)...")
-    # Your implementation goes here
-    with open('config.json') as f:
-        new_config = json.load(f)
+import flet as ft
+from components import create_progress_bar
+from config import get_checkin_data, update_config_npg, get_init_time, update_config_init_time
+from utils import excel_to_datetime, read_google_sheet
+import json
+import pandas as pd
+import webbrowser
+import os
+import shutil
 
-    #for the beginning of the card number
-    temp_number = ["000","000","000","000","000","000"]
-
-    if len(new_config['lineup_history']) >= 2:
-        prev_group = new_config["lineup_history"][-2]["people"]
-        for i, person in enumerate(prev_group[:6]):
-            temp_number[i] = str(person["No"])
-
-    #number on the back 
-    number_on_card1,number_on_card2,number_on_card3,number_on_card4,number_on_card5,number_on_card6 = temp_number
-
-
-
-    # In on_lineup_click or elsewhere
-    new_next_group = [person["No"] for person in new_config["current_lineup"]]
-    card_num = new_next_group
-    group_len = len(new_next_group)
-
-    for i in range( 6 - group_len):
-        card_num.append("000")
-    print(f'Quinton Logging************: card_num = {card_num} , temp_number = {temp_number}' )
-     #--------------------------------------------writing html--------------------------------------   
-
-    #html_string = ""
-    f = open('index.html', 'r',encoding='utf-8')
-    # writing the code into the file
-
-
-    html_string = f.read()
-
-    # close the file
-    f.close()
-    #print("card_num: ",card_num)
-    #html_string = html_string.replace('Qoos2',df_time)
-    html_string = re.sub(r'id="Qoos1">[0-9]*</h1>', 'id="Qoos1">'+str(number_on_card1)+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos2">[0-9]*</h1>', 'id="Qoos2">'+str(card_num[0])+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos3">[0-9]*</h1>', 'id="Qoos3">'+str(number_on_card2)+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos4">[0-9]*</h1>', 'id="Qoos4">'+str(card_num[1])+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos5">[0-9]*</h1>', 'id="Qoos5">'+str(number_on_card3)+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos6">[0-9]*</h1>', 'id="Qoos6">'+str(card_num[2])+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos7">[0-9]*</h1>', 'id="Qoos7">'+str(number_on_card4)+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos8">[0-9]*</h1>', 'id="Qoos8">'+str(card_num[3])+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos9">[0-9]*</h1>', 'id="Qoos9">'+str(number_on_card5)+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos10">[0-9]*</h1>', 'id="Qoos10">'+str(card_num[4])+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos11">[0-9]*</h1>', 'id="Qoos11">'+str(number_on_card6)+'</h1>', html_string)
-    html_string = re.sub(r'id="Qoos12">[0-9]*</h1>', 'id="Qoos12">'+str(card_num[5])+'</h1>', html_string)
-    html_string = html_string.replace('#ee6b6e;color: white;','QoosColor1')
-    html_string = html_string.replace('#2980b9;color: white;','QoosColor2')
-    html_string = html_string.replace('QoosColor2','#ee6b6e;color: white;')
-    html_string = html_string.replace('QoosColor1','#2980b9;color: white;')
+def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display):
+    print(f"Attempting to add latecomer No: {latecomer_no} (type: {type(latecomer_no)})")
     
+    if not latecomer_no or not str(latecomer_no).strip():
+        print("Validation failed: Empty or invalid input")
+        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text("Please enter a valid number"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
+        page.overlay[0].open = True
+        page.update()
+        return
 
+    try:
+        latecomer_no = int(float(str(latecomer_no)))
+        print(f"Normalized latecomer No: {latecomer_no}")
+    except ValueError:
+        print("Validation failed: Cannot convert to integer")
+        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text("Please enter a valid number"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
+        page.overlay[0].open = True
+        page.update()
+        return
+
+    df["No"] = df["No"].astype(int)
+    print(f"DataFrame 'No' column normalized to int: {df['No'].tolist()}")
+
+    print(f"Checking DataFrame for No: {latecomer_no}")
+    checked_in_df = df[df["Checked In"].isin([True, "Yes", 1, "TRUE"])]
+    print(f"Checked-in 'No' values: {checked_in_df['No'].tolist()}")
+    latecomer_row = checked_in_df[checked_in_df["No"] == latecomer_no]
+    print(f"Checked-in rows: {len(checked_in_df)}, Matching rows: {len(latecomer_row)}")
     
+    if latecomer_row.empty:
+        print(f"No {latecomer_no} not found or not checked in")
+        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text(f"No {latecomer_no} not found or not checked in"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
+        page.overlay[0].open = True
+        page.update()
+        return
     
-    with open("index.html", "w",encoding='utf-8') as file:
-        file.write(html_string)
+    current_lineup_nos = [int(p["No"]) for p in current_lineup]
+    if latecomer_no in interviewed or latecomer_no in current_lineup_nos:
+        print(f"No {latecomer_no} is already interviewed or in the current lineup")
+        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text(f"No {latecomer_no} is already interviewed or in the current lineup"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
+        page.overlay[0].open = True
+        page.update()
+        return
+
+    def confirm_jump(e):
+        if e.control.text == "Yes":
+            print(f"Confirmed: Adding No {latecomer_no} as latecomer")
+            latecomer_data = {
+                "No": latecomer_no,
+                "中文姓名": latecomer_row["中文姓名"].values[0] if "中文姓名" in latecomer_row else "N/A",
+                "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else 0,
+                "latecomer": True
+            }
+            current_lineup.append(latecomer_data)
+            interviewed.append(latecomer_no)
+            
+            with open("config.json", "r") as config_file:
+                config = json.load(config_file)
+            config["current_lineup"] = current_lineup
+            config["interviewed"] = interviewed
+            if lineup_history:
+                config["lineup_history"][-1]["people"] = current_lineup
+            with open("config.json", "w") as config_file:
+                json.dump(config, config_file, indent=4)
+                print("Config updated with latecomer")
+            
+            lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in current_lineup]
+            print("Lineup display updated")
+            
+            write_html()
+            print("HTML updated")
+            page.update()
+        else:
+            print("Jump in line canceled")
+        dlg.open = False
+        page.update()
+
+    print(f"Showing confirmation dialog for No: {latecomer_no}")
+    dlg = ft.AlertDialog(
+        title=ft.Text("Confirm Jump In Line"),
+        content=ft.Text(f"Add No {latecomer_no} to the current lineup?"),
+        actions=[
+            ft.TextButton("Yes", on_click=confirm_jump),
+            ft.TextButton("No", on_click=lambda e: setattr(dlg, "open", False) or page.update()),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+    page.overlay.append(dlg)
+    dlg.open = True
+    page.update()
+
+def second_page(page, data=None, url_input=None, result_text=None, submit_button=None, next_page_button=None, data_list_view=None):
+    print("Showing the second page...")
+    
+    total_interviews, checked_in, npg = get_checkin_data()
+    checked_in, df = update_checked_in_number(None)
+    total_interviews = 826
+    
+    init_time_serial = get_init_time()
+    init_time_display = excel_to_datetime(init_time_serial) if init_time_serial else "Not Set"
+    
+    data_message = ft.Text("No Google Sheet data available") if data is None or data.empty else ft.Text(f"Loaded {len(data)} rows from Google Sheet")
+
+    with open("config.json", "r") as config_file:
+        config = json.load(config_file)
+    interviewed = config.get("interviewed", [])
+    current_lineup = config.get("current_lineup", [])
+    lineup_history = config.get("lineup_history", [])
+    group_number = len(lineup_history)
+    print(f"second page opened, Interviewed list: {interviewed}")
+
+    latecomer_input = ft.TextField(
+        label="Latecomer No",
+        width=100,
+        hint_text="Enter No",
+        input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9]", replacement_string=""),
+    )
+    jump_button = ft.ElevatedButton(
+        text="Jump In Line",
+        bgcolor="purple",
+        width=150,
+        height=40,
+        style=ft.ButtonStyle(padding=10),
+    )
+
+    progress_box = ft.Container(
+        content=ft.Column(
+            [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, checked_in)],
+            spacing=10,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=10,
+        border=ft.border.all(1, ft.Colors.GREY_400),
+        border_radius=5,
+        width=page.width / 3,
+        alignment=ft.alignment.center,
+    )
+
+    lineup_display = ft.Column(
+        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in current_lineup] if current_lineup else [ft.Text("No current lineup")],
+        spacing=5
+    )
+
+    jump_button.on_click = lambda e: add_latecomer(latecomer_input.value, df, current_lineup, interviewed, lineup_history, page, lineup_display)
+
+    def on_lineup_click(event):
+        nonlocal interviewed, current_lineup, lineup_history, group_number
+        print("You clicked the Lineup button!")
+        with open("config.json", "r") as config_file:
+            config = json.load(config_file)
+        current_npg = config["npg"]
+        print(f"Fetching {current_npg} people for the lineup...")
+        new_checked_in, df = update_checked_in_number(None)
+        print(f"Quinton Logging************: new_checked_in = {new_checked_in} , df = {df}")
+        if isinstance(df, str):
+            print(f"Problem fetching data: {df}")
+            lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
+        else:
+            next_group = get_next_lineup(df, current_npg, interviewed)
+            if not next_group:
+                lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
+            else:
+                for person in next_group:
+                    person["No"] = int(person["No"])
+                group_number = len(config.get("lineup_history", [])) + 1
+                current_lineup[:] = next_group
+                interviewed.extend([person["No"] for person in next_group])
+                config["current_lineup"] = current_lineup
+                config["interviewed"] = interviewed
+                lineup_history.append({"group_number": group_number, "people": next_group, "npg": current_npg})
+                config["lineup_history"] = lineup_history
+                with open("config.json", "w") as config_file:
+                    json.dump(config, config_file, indent=4)
+                
+                with open('data.json', 'r') as data_file:
+                    data = json.load(data_file)
+                for person in next_group:
+                    data['line'].append(person["No"])
+                data['npg'].append(current_npg)
+                with open('data.json', 'w') as data_file:
+                    json.dump(data, data_file, indent=4)
+
+                lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in current_lineup]
+                progress_box.content = ft.Column(
+                    [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, new_checked_in)],
+                    spacing=10,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                )
+                print(f"Added Group #{group_number}: {[person['No'] for person in next_group]}")
+                write_html()
+        page.update()
+
+    def on_reset_click(event):
+        nonlocal interviewed, current_lineup, lineup_history, group_number
+        print("Reset button clicked!")
+
+        def confirm_reset(e):
+            print(f"Dialog button clicked: {e.control.text}")
+            if e.control.text == "Yes":
+                shutil.copy("config.json", "backup_config1.json")
+                print("Backed up config.json to backup_config1.json")
+                
+                with open("config.json", "r") as config_file:
+                    config = json.load(config_file)
+                config["interviewed"] = []
+                config["current_lineup"] = []
+                config["lineup_history"] = []
+                config["next_group"] = []
+                with open("config.json", "w") as config_file:
+                    json.dump(config, config_file, indent=4)
+                print("Reset config.json: interviewed, current_lineup, lineup_history, and next_group cleared")
+
+                interviewed.clear()
+                current_lineup.clear()
+                lineup_history.clear()
+                group_number = 0
+                lineup_display.controls = [ft.Text("No current lineup")]
+                page.update()
+            dlg.open = False
+            page.update()
+
+        dlg = ft.AlertDialog(
+            title=ft.Text("Reset Confirmation"),
+            content=ft.Text("Are you sure you want to reset? This will clear all interviewed data."),
+            actions=[
+                ft.TextButton("Yes", on_click=confirm_reset),
+                ft.TextButton("No", on_click=lambda e: setattr(dlg, "open", False) or page.update()),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        print("Opening reset confirmation dialog")
+        page.overlay.append(dlg)
+        dlg.open = True
+        page.update()
+
+    page_layout = ft.Column(
+        [
+            ft.Row(
+                [
+                    progress_box,
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Text("Number of people per group", size=16, weight="bold"),
+                                ft.Row(
+                                    [
+                                        ft.Slider(
+                                            min=0,
+                                            max=6,
+                                            value=npg,
+                                            on_change=lambda e: [
+                                                update_config_npg(e.control.value),
+                                                e.control.parent.controls[1].__setattr__('value', str(int(e.control.value))),
+                                                page.update()
+                                            ],
+                                            width=200,
+                                        ),
+                                        ft.Text(str(npg)),
+                                    ],
+                                    alignment=ft.MainAxisAlignment.CENTER,
+                                    spacing=10,
+                                ),
+                                ft.Row(
+                                    [
+                                        latecomer_input,
+                                        jump_button,
+                                    ],
+                                    alignment=ft.MainAxisAlignment.CENTER,
+                                    spacing=10,
+                                ),
+                            ],
+                            spacing=10,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        padding=10,
+                        border=ft.border.all(1, ft.Colors.GREY_400),
+                        border_radius=5,
+                        width=page.width / 3,
+                        alignment=ft.alignment.center,
+                    ),
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Text("Start Time", size=16, weight="bold"),
+                                ft.TextField(
+                                    label="(YYYY-MM-DD HH:MM:SS)",
+                                    value=init_time_display,
+                                    on_change=lambda e: update_config_init_time(e.control.value),
+                                    width=200,
+                                ),
+                            ],
+                            spacing=10,
+                        ),
+                        padding=10,
+                        border=ft.border.all(1, ft.Colors.GREY_400),
+                        border_radius=5,
+                        width=page.width / 3,
+                        alignment=ft.alignment.center,
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.START,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+                expand=True,
+            ),
+            ft.Container(
+                content=ft.Column(
+                    [
+                        ft.Text("Current Lineup", size=16, weight="bold"),
+                        lineup_display,
+                    ],
+                    spacing=10,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                padding=10,
+                border=ft.border.all(1, ft.Colors.GREY_400),
+                border_radius=5,
+                width=500,
+            ),
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.ElevatedButton(
+                            text="Lineup",
+                            bgcolor="blue",
+                            on_click=on_lineup_click,
+                            width=200,
+                            height=60,
+                            style=ft.ButtonStyle(padding=20),
+                        ),
+                        ft.ElevatedButton(
+                            text="Open HTML",
+                            bgcolor="green",
+                            on_click=lambda e: webbrowser.open(f"file://{os.getcwd()}/index.html", new=0, autoraise=True),
+                            width=200,
+                            height=60,
+                            style=ft.ButtonStyle(padding=20),
+                        ),
+                        ft.ElevatedButton(
+                            text="Go Back to First Page",
+                            bgcolor="red",
+                            on_click=lambda e: page.clean() or page.add(first_page(page, url_input, result_text, submit_button, next_page_button, data_list_view)),
+                            width=200,
+                            height=60,
+                            style=ft.ButtonStyle(padding=20),
+                        ),
+                        ft.ElevatedButton(
+                            text="Reset",
+                            bgcolor="orange",
+                            on_click=on_reset_click,
+                            width=200,
+                            height=60,
+                            style=ft.ButtonStyle(padding=20),
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=20,
+                ),
+                padding=10,
+                alignment=ft.alignment.center,
+                expand=True,
+            ),
+        ],
+        alignment=ft.MainAxisAlignment.START,
+        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+        expand=True,
+    )
+    return page_layout

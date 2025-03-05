@@ -147,6 +147,103 @@ def write_html():
         print(f"Error in write_html: {str(e)}")
         file.write(html_string)
 
+# Standalone function outside second_page
+def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display):
+    print(f"Attempting to add latecomer No: {latecomer_no} (type: {type(latecomer_no)})")
+    
+    if not latecomer_no or not str(latecomer_no).strip():
+        print("Validation failed: Empty or invalid input")
+        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text("Please enter a valid number"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
+        page.overlay[0].open = True
+        page.update()
+        return
+
+    try:
+        latecomer_no = int(float(str(latecomer_no)))
+        print(f"Normalized latecomer No: {latecomer_no}")
+    except ValueError:
+        print("Validation failed: Cannot convert to integer")
+        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text("Please enter a valid number"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
+        page.overlay[0].open = True
+        page.update()
+        return
+
+    # Refresh DataFrame to get the latest check-in status
+    _, df = update_checked_in_number(None)
+    print(f"Refreshed DataFrame with {len(df[df['Checked In'].isin([True, 'Yes', 1, 'TRUE'])])} checked-in rows")
+
+    df["No"] = pd.to_numeric(df["No"], errors='coerce')
+    clean_df = df.dropna(subset=["No"]).copy()
+    clean_df["No"] = clean_df["No"].astype(int)
+    print(f"Cleaned DataFrame 'No' values: {clean_df['No'].tolist()}")
+
+    print(f"Checking DataFrame for No: {latecomer_no}")
+    checked_in_df = clean_df[clean_df["Checked In"].isin([True, "Yes", 1, "TRUE"])]
+    print(f"Checked-in 'No' values: {checked_in_df['No'].tolist()}")
+    latecomer_row = checked_in_df[checked_in_df["No"] == latecomer_no]
+    print(f"Checked-in rows: {len(checked_in_df)}, Matching rows: {len(latecomer_row)}")
+    
+    if latecomer_row.empty:
+        print(f"No {latecomer_no} not found or not checked in")
+        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text(f"No {latecomer_no} not found or not checked in"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
+        page.overlay[0].open = True
+        page.update()
+        return
+    
+    current_lineup_nos = [int(p["No"]) for p in current_lineup]
+    if latecomer_no in interviewed or latecomer_no in current_lineup_nos:
+        print(f"No {latecomer_no} is already interviewed or in the current lineup")
+        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text(f"No {latecomer_no} is already interviewed or in the current lineup"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
+        page.overlay[0].open = True
+        page.update()
+        return
+
+    def confirm_jump(e):
+        if e.control.text == "Yes":
+            print(f"Confirmed: Adding No {latecomer_no} as latecomer")
+            latecomer_data = {
+                "No": latecomer_no,
+                "中文姓名": latecomer_row["中文姓名"].values[0] if "中文姓名" in latecomer_row else "N/A",
+                "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else 0,
+                "latecomer": True
+            }
+            current_lineup.append(latecomer_data)
+            interviewed.append(latecomer_no)
+            
+            with open("config.json", "r") as config_file:
+                config = json.load(config_file)
+            config["current_lineup"] = current_lineup
+            config["interviewed"] = interviewed
+            if lineup_history:
+                config["lineup_history"][-1]["people"] = current_lineup
+            with open("config.json", "w") as config_file:
+                json.dump(config, config_file, indent=4)
+                print("Config updated with latecomer")
+            
+            lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in current_lineup]
+            print("Lineup display updated")
+            
+            write_html()
+            print("HTML updated")
+            page.update()
+        else:
+            print("Jump in line canceled")
+        dlg.open = False
+        page.update()
+
+    print(f"Showing confirmation dialog for No: {latecomer_no}")
+    dlg = ft.AlertDialog(
+        title=ft.Text("Confirm Jump In Line"),
+        content=ft.Text(f"Add No {latecomer_no} to the current lineup?"),
+        actions=[
+            ft.TextButton("Yes", on_click=confirm_jump),
+            ft.TextButton("No", on_click=lambda e: setattr(dlg, "open", False) or page.update()),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+    page.overlay.append(dlg)
+    dlg.open = True
+    page.update()
 
 def second_page(page, data=None, url_input=None, result_text=None, submit_button=None, next_page_button=None, data_list_view=None):
     print("Showing the second page...")
@@ -168,6 +265,20 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
     group_number = len(lineup_history)
     print(f"second page opened, Interviewed list: {interviewed}")
 
+    latecomer_input = ft.TextField(
+        label="Latecomer No",
+        width=100,
+        hint_text="Enter No",
+        input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9]", replacement_string=""),
+    )
+    jump_button = ft.ElevatedButton(
+        text="Jump In Line",
+        bgcolor="purple",
+        width=150,
+        height=40,
+        style=ft.ButtonStyle(padding=10),
+    )
+
     progress_box = ft.Container(
         content=ft.Column(
             [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, checked_in)],
@@ -182,12 +293,14 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
     )
 
     lineup_display = ft.Column(
-        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in current_lineup] if current_lineup else [ft.Text("No current lineup")],
+        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in current_lineup] if current_lineup else [ft.Text("No current lineup")],
         spacing=5
     )
 
+    jump_button.on_click = lambda e: add_latecomer(latecomer_input.value, df, current_lineup, interviewed, lineup_history, page, lineup_display)
+
     def on_lineup_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number  # Allow modification of outer scope
+        nonlocal interviewed, current_lineup, lineup_history, group_number
         print("You clicked the Lineup button!")
         with open("config.json", "r") as config_file:
             config = json.load(config_file)
@@ -234,7 +347,7 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
         page.update()
 
     def on_reset_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number  # Allow modification of outer scope
+        nonlocal interviewed, current_lineup, lineup_history, group_number
         print("Reset button clicked!")
 
         def confirm_reset(e):
@@ -253,11 +366,10 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                     json.dump(config, config_file, indent=4)
                 print("Reset config.json: interviewed, current_lineup, lineup_history, and next_group cleared")
 
-                # Reset in-memory state
                 interviewed.clear()
                 current_lineup.clear()
                 lineup_history.clear()
-                group_number = 0  # Reset group number to start from 1 next time
+                group_number = 0
                 lineup_display.controls = [ft.Text("No current lineup")]
                 page.update()
             dlg.open = False
@@ -300,6 +412,14 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                                             width=200,
                                         ),
                                         ft.Text(str(npg)),
+                                    ],
+                                    alignment=ft.MainAxisAlignment.CENTER,
+                                    spacing=10,
+                                ),
+                                ft.Row(
+                                    [
+                                        latecomer_input,
+                                        jump_button,
                                     ],
                                     alignment=ft.MainAxisAlignment.CENTER,
                                     spacing=10,

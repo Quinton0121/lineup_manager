@@ -1,35 +1,36 @@
 {
     "beautify JSON": "cmd + shift + j",
     "total_interview": 826,
-    "npg": 4,
+    "npg": 3,
     "init_time": 44601.42054398148,
     "last_timevalue": 44999.41963,
     "last_no": 823,
-    "number_of_checked_in": 5,
+    "number_of_checked_in": 17,
     "number_of_not_check_in": 0,
     "next_group": [],
     "number_of_people_interviewed": 774,
     "file_name": 165,
     "current_lineup": [
         {
-            "No": 129,
-            "\u4e2d\u6587\u59d3\u540d": "\u5433\u6137\u6069",
-            "timevalue": 45720.91349
+            "No": 158,
+            "\u4e2d\u6587\u59d3\u540d": "\u66fe\u67cf\u7136",
+            "timevalue": 45720.96617
         },
         {
-            "No": 45,
-            "\u4e2d\u6587\u59d3\u540d": "\u5c91\u6893\u6717",
-            "timevalue": 45720.91353
+            "No": 161,
+            "\u4e2d\u6587\u59d3\u540d": "\u5bb9\u9756\u5f26",
+            "timevalue": 45720.96854
         },
         {
-            "No": 22,
-            "\u4e2d\u6587\u59d3\u540d": "\u59da\u771f\u73e0",
-            "timevalue": 45720.91359
+            "No": 162,
+            "\u4e2d\u6587\u59d3\u540d": "\u6797\u6fa4\u4e00",
+            "timevalue": 45720.96855
         },
         {
-            "No": 6,
-            "\u4e2d\u6587\u59d3\u540d": NaN,
-            "timevalue": 45720.91361
+            "No": 163,
+            "\u4e2d\u6587\u59d3\u540d": "\u6797\u4fca\u8a00",
+            "timevalue": 45720.96857,
+            "latecomer": true
         }
     ],
     "interviewed": [
@@ -37,7 +38,17 @@
         129,
         45,
         22,
-        6
+        6,
+        14,
+        35,
+        49,
+        105,
+        126,
+        134,
+        158,
+        161,
+        162,
+        163
     ],
     "lineup_history": [
         {
@@ -76,6 +87,75 @@
                 }
             ],
             "npg": 4
+        },
+        {
+            "group_number": 3,
+            "people": [
+                {
+                    "No": 14,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6881\u96ef\u6a3a",
+                    "timevalue": 45720.95555
+                },
+                {
+                    "No": 35,
+                    "\u4e2d\u6587\u59d3\u540d": "\u8cf4\u777f\u5e0c",
+                    "timevalue": 45720.95557
+                },
+                {
+                    "No": 49,
+                    "\u4e2d\u6587\u59d3\u540d": "\u65bd\u51f1\u7d14",
+                    "timevalue": 45720.95558
+                }
+            ],
+            "npg": 3
+        },
+        {
+            "group_number": 4,
+            "people": [
+                {
+                    "No": 105,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6797\u7165\u535a",
+                    "timevalue": 45720.95563
+                },
+                {
+                    "No": 126,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9f8d\u665e\u745c",
+                    "timevalue": 45720.95565
+                },
+                {
+                    "No": 134,
+                    "\u4e2d\u6587\u59d3\u540d": "\u80e1\u67cf\u6d0b",
+                    "timevalue": 45720.9557
+                }
+            ],
+            "npg": 3
+        },
+        {
+            "group_number": 5,
+            "people": [
+                {
+                    "No": 158,
+                    "\u4e2d\u6587\u59d3\u540d": "\u66fe\u67cf\u7136",
+                    "timevalue": 45720.96617
+                },
+                {
+                    "No": 161,
+                    "\u4e2d\u6587\u59d3\u540d": "\u5bb9\u9756\u5f26",
+                    "timevalue": 45720.96854
+                },
+                {
+                    "No": 162,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6797\u6fa4\u4e00",
+                    "timevalue": 45720.96855
+                },
+                {
+                    "No": 163,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6797\u4fca\u8a00",
+                    "timevalue": 45720.96857,
+                    "latecomer": true
+                }
+            ],
+            "npg": 3
         }
     ],
     "last_front_color": "#ee6b6e"
