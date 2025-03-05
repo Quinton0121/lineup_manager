@@ -5,13 +5,55 @@
     "init_time": 44601.42054398148,
     "last_timevalue": 44999.41963,
     "last_no": 823,
-    "number_of_checked_in": 7,
+    "number_of_checked_in": 6,
     "number_of_not_check_in": 0,
     "next_group": [],
     "number_of_people_interviewed": 774,
     "file_name": 165,
-    "current_lineup": [],
-    "interviewed": [],
-    "lineup_history": [],
+    "current_lineup": [
+        {
+            "No": 13,
+            "\u4e2d\u6587\u59d3\u540d": "\u6881\u6069\u665e",
+            "timevalue": 0.0
+        },
+        {
+            "No": 4,
+            "\u4e2d\u6587\u59d3\u540d": "\u9673\u73a5\u582f",
+            "timevalue": 45721.42555
+        },
+        {
+            "No": 2,
+            "\u4e2d\u6587\u59d3\u540d": "\u9673\u5ba5\u7fb2",
+            "timevalue": 45721.42558
+        }
+    ],
+    "interviewed": [
+        13,
+        4,
+        2
+    ],
+    "lineup_history": [
+        {
+            "group_number": 1,
+            "people": [
+                {
+                    "No": 13,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6881\u6069\u665e",
+                    "timevalue": 0.0
+                },
+                {
+                    "No": 4,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9673\u73a5\u582f",
+                    "timevalue": 45721.42555
+                },
+                {
+                    "No": 2,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9673\u5ba5\u7fb2",
+                    "timevalue": 45721.42558
+                }
+            ],
+            "npg": 3
+        }
+    ],
     "last_front_color": "#ee6b6e"
 }

@@ -147,14 +147,15 @@ def write_html():
         print(f"Error in write_html: {str(e)}")
         file.write(html_string)
 
-# Standalone function outside second_page
-def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display):
+def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display, progress_box, error_message, latecomer_input):  # Added latecomer_input parameter
     print(f"Attempting to add latecomer No: {latecomer_no} (type: {type(latecomer_no)})")
-    
+    error_message.value = ""  # Clear any previous error message
+    latecomer_input.value = ""  # Clear the input field immediately after button press
+
+    # Validate input
     if not latecomer_no or not str(latecomer_no).strip():
         print("Validation failed: Empty or invalid input")
-        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text("Please enter a valid number"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
-        page.overlay[0].open = True
+        error_message.value = "Please enter a valid number"
         page.update()
         return
 
@@ -163,41 +164,51 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
         print(f"Normalized latecomer No: {latecomer_no}")
     except ValueError:
         print("Validation failed: Cannot convert to integer")
-        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text("Please enter a valid number"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
-        page.overlay[0].open = True
+        error_message.value = "Please enter a valid number"
         page.update()
         return
 
-    # Refresh DataFrame to get the latest check-in status
-    _, df = update_checked_in_number(None)
-    print(f"Refreshed DataFrame with {len(df[df['Checked In'].isin([True, 'Yes', 1, 'TRUE'])])} checked-in rows")
+    # Refresh checked-in data
+    checked_in, df = update_checked_in_number(None)
+    print(f"Refreshed DataFrame with {checked_in} checked-in rows")
 
+    # Clean and prepare DataFrame
     df["No"] = pd.to_numeric(df["No"], errors='coerce')
     clean_df = df.dropna(subset=["No"]).copy()
     clean_df["No"] = clean_df["No"].astype(int)
     print(f"Cleaned DataFrame 'No' values: {clean_df['No'].tolist()}")
 
-    print(f"Checking DataFrame for No: {latecomer_no}")
-    checked_in_df = clean_df[clean_df["Checked In"].isin([True, "Yes", 1, "TRUE"])]
-    print(f"Checked-in 'No' values: {checked_in_df['No'].tolist()}")
-    latecomer_row = checked_in_df[checked_in_df["No"] == latecomer_no]
-    print(f"Checked-in rows: {len(checked_in_df)}, Matching rows: {len(latecomer_row)}")
-    
-    if latecomer_row.empty:
-        print(f"No {latecomer_no} not found or not checked in")
-        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text(f"No {latecomer_no} not found or not checked in"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
-        page.overlay[0].open = True
-        page.update()
-        return
-    
-    current_lineup_nos = [int(p["No"]) for p in current_lineup]
-    if latecomer_no in interviewed or latecomer_no in current_lineup_nos:
-        print(f"No {latecomer_no} is already interviewed or in the current lineup")
-        page.overlay.append(ft.AlertDialog(title=ft.Text("Error"), content=ft.Text(f"No {latecomer_no} is already interviewed or in the current lineup"), actions=[ft.TextButton("OK", on_click=lambda e: setattr(page.overlay[0], "open", False) or page.update())]))
-        page.overlay[0].open = True
+    # Check if the person exists in the DataFrame
+    person_row = clean_df[clean_df["No"] == latecomer_no]
+    if person_row.empty:
+        print(f"No {latecomer_no} not found in DataFrame")
+        error_message.value = f"No {latecomer_no} not found"
         page.update()
         return
 
+    # Check if the person has checked in
+    checked_in_df = clean_df[clean_df["Checked In"].isin([True, "Yes", 1, "TRUE"])]
+    latecomer_row = checked_in_df[checked_in_df["No"] == latecomer_no]
+    if latecomer_row.empty:
+        print(f"No {latecomer_no} is not checked in")
+        error_message.value = f"No {latecomer_no} is not checked in"  # Updated message
+        page.update()
+        return
+
+    # Check if the person is already interviewed or in the current lineup
+    current_lineup_nos = [int(p["No"]) for p in current_lineup]
+    if latecomer_no in interviewed:
+        print(f"No {latecomer_no} is already interviewed")
+        error_message.value = f"No {latecomer_no} is already interviewed"  # Updated message
+        page.update()
+        return
+    elif latecomer_no in current_lineup_nos:
+        print(f"No {latecomer_no} is already in the current lineup")
+        error_message.value = f"No {latecomer_no} is already in the current lineup"  # Updated message
+        page.update()
+        return
+
+    # If all checks pass, proceed with confirmation
     def confirm_jump(e):
         if e.control.text == "Yes":
             print(f"Confirmed: Adding No {latecomer_no} as latecomer")
@@ -209,7 +220,7 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
             }
             current_lineup.append(latecomer_data)
             interviewed.append(latecomer_no)
-            
+
             with open("config.json", "r") as config_file:
                 config = json.load(config_file)
             config["current_lineup"] = current_lineup
@@ -219,10 +230,14 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
             with open("config.json", "w") as config_file:
                 json.dump(config, config_file, indent=4)
                 print("Config updated with latecomer")
-            
-            lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in current_lineup]
+
+            lineup_display.controls = [
+                ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
+                for person in current_lineup
+            ]
             print("Lineup display updated")
-            
+
+            progress_box.content.controls[3] = create_progress_bar(checked_in, len(interviewed))
             write_html()
             print("HTML updated")
             page.update()
@@ -265,42 +280,77 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
     group_number = len(lineup_history)
     print(f"second page opened, Interviewed list: {interviewed}")
 
+    # Get the last lineup (lineup_history[-2]) if it exists
+    last_lineup = []
+    if len(lineup_history) >= 2:
+        last_lineup = lineup_history[-2]["people"]
+        print(f"Last lineup (Group #{lineup_history[-2]['group_number']}): {[person['No'] for person in last_lineup]}")
+    else:
+        print("No previous lineup available (less than 2 groups in history)")
+
+    # Get the next potential lineup
+    next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
+    print(f"Next potential lineup: {[person['No'] for person in next_potential_lineup]}")
+
     latecomer_input = ft.TextField(
         label="Latecomer No",
-        width=100,
+        width=200,
         hint_text="Enter No",
         input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9]", replacement_string=""),
     )
     jump_button = ft.ElevatedButton(
         text="Jump In Line",
-        bgcolor="purple",
+        bgcolor="Green",
         width=150,
         height=40,
         style=ft.ButtonStyle(padding=10),
     )
+    
+    error_message = ft.Text("", color=ft.colors.RED, size=14)
 
     progress_box = ft.Container(
         content=ft.Column(
-            [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, checked_in)],
-            spacing=10,
+            [
+                ft.Text("Check-in Status", size=20, weight="bold"),
+                create_progress_bar(total_interviews, checked_in),
+                ft.Text("Interview Status", size=20, weight="bold"),
+                create_progress_bar(checked_in, len(interviewed)),
+            ],
+            spacing=18,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
-        padding=10,
+        padding=ft.padding.only(top=10, bottom=5, left=10, right=10),
         border=ft.border.all(1, ft.Colors.GREY_400),
         border_radius=5,
         width=page.width / 3,
         alignment=ft.alignment.center,
+        height=250,
     )
 
+    # Current Lineup Display
     lineup_display = ft.Column(
         [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in current_lineup] if current_lineup else [ft.Text("No current lineup")],
         spacing=5
     )
 
-    jump_button.on_click = lambda e: add_latecomer(latecomer_input.value, df, current_lineup, interviewed, lineup_history, page, lineup_display)
+    # Last Lineup Display
+    last_lineup_display = ft.Column(
+        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in last_lineup] if last_lineup else [ft.Text("No previous lineup")],
+        spacing=5
+    )
+
+    # Next Potential Lineup Display
+    next_lineup_display = ft.Column(
+        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in next_potential_lineup] if next_potential_lineup else [ft.Text("No next lineup available")],
+        spacing=5
+    )
+
+    jump_button.on_click = lambda e: add_latecomer(
+        latecomer_input.value, df, current_lineup, interviewed, lineup_history, page, lineup_display, progress_box, error_message, latecomer_input
+    )
 
     def on_lineup_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number
+        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup
         print("You clicked the Lineup button!")
         with open("config.json", "r") as config_file:
             config = json.load(config_file)
@@ -311,10 +361,12 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
         if isinstance(df, str):
             print(f"Problem fetching data: {df}")
             lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
+            next_lineup_display.controls = [ft.Text("No next lineup available")]
         else:
             next_group = get_next_lineup(df, current_npg, interviewed)
             if not next_group:
                 lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
+                next_lineup_display.controls = [ft.Text("No next lineup available")]
             else:
                 for person in next_group:
                     person["No"] = int(person["No"])
@@ -337,8 +389,26 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                     json.dump(data, data_file, indent=4)
 
                 lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in current_lineup]
+                if len(lineup_history) >= 2:
+                    last_lineup_display.controls = [
+                        ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
+                        for person in lineup_history[-2]["people"]
+                    ]
+                else:
+                    last_lineup_display.controls = [ft.Text("No previous lineup")]
+                # Update next potential lineup
+                next_potential_lineup = get_next_lineup(df, current_npg, interviewed)
+                next_lineup_display.controls = [
+                    ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") 
+                    for person in next_potential_lineup
+                ] if next_potential_lineup else [ft.Text("No next lineup available")]
                 progress_box.content = ft.Column(
-                    [ft.Text("Check-in Status", size=20, weight="bold"), create_progress_bar(total_interviews, new_checked_in)],
+                    [
+                        ft.Text("Check-in Status", size=20, weight="bold"),
+                        create_progress_bar(total_interviews, new_checked_in),
+                        ft.Text("Interview Status", size=20, weight="bold"),
+                        create_progress_bar(new_checked_in, len(interviewed)),
+                    ],
                     spacing=10,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 )
@@ -347,7 +417,7 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
         page.update()
 
     def on_reset_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number
+        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup
         print("Reset button clicked!")
 
         def confirm_reset(e):
@@ -371,6 +441,22 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                 lineup_history.clear()
                 group_number = 0
                 lineup_display.controls = [ft.Text("No current lineup")]
+                last_lineup_display.controls = [ft.Text("No previous lineup")]
+                next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
+                next_lineup_display.controls = [
+                    ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") 
+                    for person in next_potential_lineup
+                ] if next_potential_lineup else [ft.Text("No next lineup available")]
+                progress_box.content = ft.Column(
+                    [
+                        ft.Text("Check-in Status", size=20, weight="bold"),
+                        create_progress_bar(total_interviews, checked_in),
+                        ft.Text("Interview Status", size=20, weight="bold"),
+                        create_progress_bar(checked_in, len(interviewed)),
+                    ],
+                    spacing=10,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                )
                 page.update()
             dlg.open = False
             page.update()
@@ -395,9 +481,11 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                 [
                     progress_box,
                     ft.Container(
+                        height=250,
                         content=ft.Column(
                             [
                                 ft.Text("Number of people per group", size=16, weight="bold"),
+                                ft.Container(height=-5),
                                 ft.Row(
                                     [
                                         ft.Slider(
@@ -407,6 +495,10 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                                             on_change=lambda e: [
                                                 update_config_npg(e.control.value),
                                                 e.control.parent.controls[1].__setattr__('value', str(int(e.control.value))),
+                                                setattr(next_lineup_display, 'controls', [
+                                                    ft.Text(f"No: {p['No']} - {p['中文姓名']} - {p['timevalue']}")
+                                                    for p in get_next_lineup(df, int(e.control.value), interviewed)
+                                                ] if get_next_lineup(df, int(e.control.value), interviewed) else [ft.Text("No next lineup available")]),
                                                 page.update()
                                             ],
                                             width=200,
@@ -416,25 +508,35 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                                     alignment=ft.MainAxisAlignment.CENTER,
                                     spacing=10,
                                 ),
-                                ft.Row(
+                                ft.Container(height=35),
+                                ft.Column(
                                     [
-                                        latecomer_input,
-                                        jump_button,
+                                        ft.Text("Jump In Line", size=16, weight="bold"),
+                                        ft.Row(
+                                            [
+                                                latecomer_input,
+                                                jump_button,
+                                            ],
+                                            alignment=ft.MainAxisAlignment.CENTER,
+                                            spacing=10,
+                                        ),
                                     ],
-                                    alignment=ft.MainAxisAlignment.CENTER,
                                     spacing=10,
+                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                                 ),
+                                error_message,
                             ],
                             spacing=10,
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
-                        padding=10,
+                        padding=3,
                         border=ft.border.all(1, ft.Colors.GREY_400),
                         border_radius=5,
                         width=page.width / 3,
                         alignment=ft.alignment.center,
                     ),
                     ft.Container(
+                        height=250,
                         content=ft.Column(
                             [
                                 ft.Text("Start Time", size=16, weight="bold"),
@@ -447,7 +549,7 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                             ],
                             spacing=10,
                         ),
-                        padding=10,
+                        padding=3,
                         border=ft.border.all(1, ft.Colors.GREY_400),
                         border_radius=5,
                         width=page.width / 3,
@@ -458,26 +560,71 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                 vertical_alignment=ft.CrossAxisAlignment.START,
                 expand=True,
             ),
-            ft.Container(
-                content=ft.Column(
-                    [
-                        ft.Text("Current Lineup", size=16, weight="bold"),
-                        lineup_display,
-                    ],
-                    spacing=10,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-                padding=10,
-                border=ft.border.all(1, ft.Colors.GREY_400),
-                border_radius=5,
-                width=500,
+            ft.Row(
+                [
+                    ft.Container(
+                        height=350,
+                        content=ft.Column(
+                            [
+                                ft.Text("Last Lineup", size=16, weight="bold"),
+                                last_lineup_display,
+                            ],
+                            spacing=10,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        padding=20,
+                        border=ft.border.all(1, ft.Colors.GREY_400),
+                        border_radius=5,
+                        width=500,
+                    ),
+                    ft.Container(
+                        height=350,
+                        content=ft.Column(
+                            [
+                                ft.Text("Current Lineup", size=16, weight="bold"),
+                                lineup_display,
+                            ],
+                            spacing=10,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        padding=20,
+                        border=ft.border.all(1, ft.Colors.GREY_400),
+                        border_radius=5,
+                        width=500,
+                    ),
+                    ft.Container(
+                        height=350,
+                        content=ft.Column(
+                            [
+                                ft.Text("Next Potential Lineup", size=16, weight="bold"),
+                                next_lineup_display,
+                            ],
+                            spacing=10,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        padding=20,
+                        border=ft.border.all(1, ft.Colors.GREY_400),
+                        border_radius=5,
+                        width=500,
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=20,
             ),
             ft.Container(
                 content=ft.Row(
                     [
                         ft.ElevatedButton(
+                            text="<---- Back",
+                            bgcolor="red",
+                            on_click=lambda e: page.clean() or page.add(first_page(page, url_input, result_text, submit_button, next_page_button, data_list_view)),
+                            width=80,
+                            height=60,
+                            style=ft.ButtonStyle(padding=20),
+                        ),
+                        ft.ElevatedButton(
                             text="Lineup",
-                            bgcolor="blue",
+                            bgcolor="orange",
                             on_click=on_lineup_click,
                             width=200,
                             height=60,
@@ -485,25 +632,17 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                         ),
                         ft.ElevatedButton(
                             text="Open HTML",
-                            bgcolor="green",
+                            bgcolor="yellow",
                             on_click=lambda e: webbrowser.open(f"file://{os.getcwd()}/index.html", new=0, autoraise=True),
                             width=200,
                             height=60,
                             style=ft.ButtonStyle(padding=20),
                         ),
                         ft.ElevatedButton(
-                            text="Go Back to First Page",
-                            bgcolor="red",
-                            on_click=lambda e: page.clean() or page.add(first_page(page, url_input, result_text, submit_button, next_page_button, data_list_view)),
-                            width=200,
-                            height=60,
-                            style=ft.ButtonStyle(padding=20),
-                        ),
-                        ft.ElevatedButton(
                             text="Reset",
-                            bgcolor="orange",
+                            bgcolor="red",
                             on_click=on_reset_click,
-                            width=200,
+                            width=80,
                             height=60,
                             style=ft.ButtonStyle(padding=20),
                         ),
