@@ -1,400 +1,91 @@
-def second_page(page, data=None, url_input=None, result_text=None, submit_button=None, next_page_button=None, data_list_view=None):
-    print("Showing the second page...")
-    
-    total_interviews, checked_in, npg = get_checkin_data()
-    checked_in, df = update_checked_in_number(None)
-    total_interviews = 826
-    
-    init_time_serial = get_init_time()
-    init_time_display = excel_to_datetime(init_time_serial) if init_time_serial else "Not Set"
-    
-    data_message = ft.Text("No Google Sheet data available") if data is None or data.empty else ft.Text(f"Loaded {len(data)} rows from Google Sheet")
+def on_undo_click(event):
+    nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup, can_undo
+    print("Undo button clicked!")
+    if not can_undo:
+        print("Undo already performed - must click Lineup to enable undo again")
+        error_message.value = "Undo already performed. Click Lineup to enable undo again."
+        page.update()
+        return
+    if not lineup_history:
+        print("Nothing to undo - lineup history is empty")
+        error_message.value = "Nothing to undo."
+        page.update()
+        return
+
+    shutil.copy("config.json", "backup_config_undo.json")
+    print("Backed up config.json to backup_config_undo.json")
+
+    last_group = lineup_history[-1]
+    last_group_nos = [person["No"] for person in last_group["people"]]
+    print(f"Undoing Group #{last_group['group_number']}: {last_group_nos}")
+
+    lineup_history.pop()
+    group_number -= 1
+
+    # Update current_lineup
+    if lineup_history:
+        current_lineup[:] = lineup_history[-1]["people"]
+    else:
+        current_lineup.clear()
+
+    # Rebuild interviewed list from remaining lineup_history and current_lineup
+    interviewed[:] = []
+    for group in lineup_history:
+        interviewed.extend([person["No"] for person in group["people"]])
+    interviewed.extend([person["No"] for person in current_lineup])
+    interviewed = list(set(interviewed))  # Remove duplicates if any
 
     with open("config.json", "r") as config_file:
         config = json.load(config_file)
-    interviewed = config.get("interviewed", [])
-    current_lineup = config.get("current_lineup", [])
-    lineup_history = config.get("lineup_history", [])
-    group_number = len(lineup_history)
-    print(f"second page opened, Interviewed list: {interviewed}")
+    config["interviewed"] = interviewed
+    config["current_lineup"] = current_lineup
+    config["lineup_history"] = lineup_history
+    with open("config.json", "w") as config_file:
+        json.dump(config, config_file, indent=4)
+    print("Config.json updated after undo")
 
-    # Get the last lineup (lineup_history[-2]) if it exists
-    last_lineup = []
+    # Update data.json (assuming it should reflect all interviewed numbers)
+    with open('data.json', 'r') as data_file:
+        data = json.load(data_file)
+    data['line'] = data['line'][:-len(last_group_nos)]
+    data['npg'] = data['npg'][:-1]
+    with open('data.json', 'w') as data_file:
+        json.dump(data, data_file, indent=4)
+    print("Data.json updated after undo")
+
+    # Update UI components
+    lineup_display.controls = [
+        ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
+        for person in current_lineup
+    ] if current_lineup else [ft.Text("No current lineup")]
+
     if len(lineup_history) >= 2:
-        last_lineup = lineup_history[-2]["people"]
-        print(f"Last lineup (Group #{lineup_history[-2]['group_number']}): {[person['No'] for person in last_lineup]}")
+        last_lineup_display.controls = [
+            ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
+            for person in lineup_history[-2]["people"]
+        ]
     else:
-        print("No previous lineup available (less than 2 groups in history)")
+        last_lineup_display.controls = [ft.Text("No previous lineup")]
 
-    # Get the next potential lineup
     next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
-    print(f"Next potential lineup: {[person['No'] for person in next_potential_lineup]}")
+    next_lineup_display.controls = [
+        ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}")
+        for person in next_potential_lineup
+    ] if next_potential_lineup else [ft.Text("No next lineup available")]
 
-    latecomer_input = ft.TextField(
-        label="Latecomer No",
-        width=200,
-        hint_text="Enter No",
-        input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9]", replacement_string=""),
-    )
-    jump_button = ft.ElevatedButton(
-        text="Jump In Line",
-        bgcolor="Green",
-        width=150,
-        height=40,
-        style=ft.ButtonStyle(padding=10),
-    )
-    
-    error_message = ft.Text("", color=ft.colors.RED, size=14)
-
-    progress_box = ft.Container(
-        content=ft.Column(
-            [
-                ft.Text("Check-in Status", size=20, weight="bold"),
-                create_progress_bar(total_interviews, checked_in),
-                ft.Text("Interview Status", size=20, weight="bold"),
-                create_progress_bar(checked_in, len(interviewed)),
-            ],
-            spacing=18,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
-        padding=ft.padding.only(top=10, bottom=5, left=10, right=10),
-        border=ft.border.all(1, ft.Colors.GREY_400),
-        border_radius=5,
-        width=page.width / 3,
-        alignment=ft.alignment.center,
-        height=250,
-    )
-
-    # Current Lineup Display
-    lineup_display = ft.Column(
-        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in current_lineup] if current_lineup else [ft.Text("No current lineup")],
-        spacing=5
-    )
-
-    # Last Lineup Display
-    last_lineup_display = ft.Column(
-        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in last_lineup] if last_lineup else [ft.Text("No previous lineup")],
-        spacing=5
-    )
-
-    # Next Potential Lineup Display
-    next_lineup_display = ft.Column(
-        [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in next_potential_lineup] if next_potential_lineup else [ft.Text("No next lineup available")],
-        spacing=5
-    )
-
-    jump_button.on_click = lambda e: add_latecomer(
-        latecomer_input.value, df, current_lineup, interviewed, lineup_history, page, lineup_display, progress_box, error_message, latecomer_input
-    )
-
-    def on_lineup_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup
-        print("You clicked the Lineup button!")
-        with open("config.json", "r") as config_file:
-            config = json.load(config_file)
-        current_npg = config["npg"]
-        print(f"Fetching {current_npg} people for the lineup...")
-        new_checked_in, df = update_checked_in_number(None)
-        print(f"Quinton Logging************: new_checked_in = {new_checked_in} , df = {df}")
-        if isinstance(df, str):
-            print(f"Problem fetching data: {df}")
-            lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
-            next_lineup_display.controls = [ft.Text("No next lineup available")]
-        else:
-            next_group = get_next_lineup(df, current_npg, interviewed)
-            if not next_group:
-                lineup_display.controls = [ft.Text("No more people to line up", color=ft.colors.RED)]
-                next_lineup_display.controls = [ft.Text("No next lineup available")]
-            else:
-                for person in next_group:
-                    person["No"] = int(person["No"])
-                group_number = len(config.get("lineup_history", [])) + 1
-                current_lineup[:] = next_group
-                interviewed.extend([person["No"] for person in next_group])
-                config["current_lineup"] = current_lineup
-                config["interviewed"] = interviewed
-                lineup_history.append({"group_number": group_number, "people": next_group, "npg": current_npg})
-                config["lineup_history"] = lineup_history
-                with open("config.json", "w") as config_file:
-                    json.dump(config, config_file, indent=4)
-                
-                with open('data.json', 'r') as data_file:
-                    data = json.load(data_file)
-                for person in next_group:
-                    data['line'].append(person["No"])
-                data['npg'].append(current_npg)
-                with open('data.json', 'w') as data_file:
-                    json.dump(data, data_file, indent=4)
-
-                lineup_display.controls = [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in current_lineup]
-                if len(lineup_history) >= 2:
-                    last_lineup_display.controls = [
-                        ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
-                        for person in lineup_history[-2]["people"]
-                    ]
-                else:
-                    last_lineup_display.controls = [ft.Text("No previous lineup")]
-                # Update next potential lineup
-                next_potential_lineup = get_next_lineup(df, current_npg, interviewed)
-                next_lineup_display.controls = [
-                    ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") 
-                    for person in next_potential_lineup
-                ] if next_potential_lineup else [ft.Text("No next lineup available")]
-                progress_box.content = ft.Column(
-                    [
-                        ft.Text("Check-in Status", size=20, weight="bold"),
-                        create_progress_bar(total_interviews, new_checked_in),
-                        ft.Text("Interview Status", size=20, weight="bold"),
-                        create_progress_bar(new_checked_in, len(interviewed)),
-                    ],
-                    spacing=10,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                )
-                print(f"Added Group #{group_number}: {[person['No'] for person in next_group]}")
-                write_html()
-        page.update()
-
-    def on_reset_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup
-        print("Reset button clicked!")
-
-        def confirm_reset(e):
-            print(f"Dialog button clicked: {e.control.text}")
-            if e.control.text == "Yes":
-                shutil.copy("config.json", "backup_config1.json")
-                print("Backed up config.json to backup_config1.json")
-                
-                with open("config.json", "r") as config_file:
-                    config = json.load(config_file)
-                config["interviewed"] = []
-                config["current_lineup"] = []
-                config["lineup_history"] = []
-                config["next_group"] = []
-                with open("config.json", "w") as config_file:
-                    json.dump(config, config_file, indent=4)
-                print("Reset config.json: interviewed, current_lineup, lineup_history, and next_group cleared")
-
-                interviewed.clear()
-                current_lineup.clear()
-                lineup_history.clear()
-                group_number = 0
-                lineup_display.controls = [ft.Text("No current lineup")]
-                last_lineup_display.controls = [ft.Text("No previous lineup")]
-                next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
-                next_lineup_display.controls = [
-                    ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") 
-                    for person in next_potential_lineup
-                ] if next_potential_lineup else [ft.Text("No next lineup available")]
-                progress_box.content = ft.Column(
-                    [
-                        ft.Text("Check-in Status", size=20, weight="bold"),
-                        create_progress_bar(total_interviews, checked_in),
-                        ft.Text("Interview Status", size=20, weight="bold"),
-                        create_progress_bar(checked_in, len(interviewed)),
-                    ],
-                    spacing=10,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                )
-                page.update()
-            dlg.open = False
-            page.update()
-
-        dlg = ft.AlertDialog(
-            title=ft.Text("Reset Confirmation"),
-            content=ft.Text("Are you sure you want to reset? This will clear all interviewed data."),
-            actions=[
-                ft.TextButton("Yes", on_click=confirm_reset),
-                ft.TextButton("No", on_click=lambda e: setattr(dlg, "open", False) or page.update()),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        print("Opening reset confirmation dialog")
-        page.overlay.append(dlg)
-        dlg.open = True
-        page.update()
-
-    page_layout = ft.Column(
+    progress_box.content = ft.Column(
         [
-            ft.Row(
-                [
-                    progress_box,
-                    ft.Container(
-                        height=250,
-                        content=ft.Column(
-                            [
-                                ft.Text("Number of people per group", size=16, weight="bold"),
-                                ft.Container(height=-5),
-                                ft.Row(
-                                    [
-                                        ft.Slider(
-                                            min=0,
-                                            max=6,
-                                            value=npg,
-                                            on_change=lambda e: [
-                                                update_config_npg(e.control.value),
-                                                e.control.parent.controls[1].__setattr__('value', str(int(e.control.value))),
-                                                setattr(next_lineup_display, 'controls', [
-                                                    ft.Text(f"No: {p['No']} - {p['中文姓名']} - {p['timevalue']}")
-                                                    for p in get_next_lineup(df, int(e.control.value), interviewed)
-                                                ] if get_next_lineup(df, int(e.control.value), interviewed) else [ft.Text("No next lineup available")]),
-                                                page.update()
-                                            ],
-                                            width=200,
-                                        ),
-                                        ft.Text(str(npg)),
-                                    ],
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                    spacing=10,
-                                ),
-                                ft.Container(height=35),
-                                ft.Column(
-                                    [
-                                        ft.Text("Jump In Line", size=16, weight="bold"),
-                                        ft.Row(
-                                            [
-                                                latecomer_input,
-                                                jump_button,
-                                            ],
-                                            alignment=ft.MainAxisAlignment.CENTER,
-                                            spacing=10,
-                                        ),
-                                    ],
-                                    spacing=10,
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                ),
-                                error_message,
-                            ],
-                            spacing=10,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        padding=3,
-                        border=ft.border.all(1, ft.Colors.GREY_400),
-                        border_radius=5,
-                        width=page.width / 3,
-                        alignment=ft.alignment.center,
-                    ),
-                    ft.Container(
-                        height=250,
-                        content=ft.Column(
-                            [
-                                ft.Text("Start Time", size=16, weight="bold"),
-                                ft.TextField(
-                                    label="(YYYY-MM-DD HH:MM:SS)",
-                                    value=init_time_display,
-                                    on_change=lambda e: update_config_init_time(e.control.value),
-                                    width=200,
-                                ),
-                            ],
-                            spacing=10,
-                        ),
-                        padding=3,
-                        border=ft.border.all(1, ft.Colors.GREY_400),
-                        border_radius=5,
-                        width=page.width / 3,
-                        alignment=ft.alignment.center,
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.START,
-                vertical_alignment=ft.CrossAxisAlignment.START,
-                expand=True,
-            ),
-            ft.Row(
-                [
-                    ft.Container(
-                        height=350,
-                        content=ft.Column(
-                            [
-                                ft.Text("Last Lineup", size=16, weight="bold"),
-                                last_lineup_display,
-                            ],
-                            spacing=10,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        padding=20,
-                        border=ft.border.all(1, ft.Colors.GREY_400),
-                        border_radius=5,
-                        width=500,
-                    ),
-                    ft.Container(
-                        height=350,
-                        content=ft.Column(
-                            [
-                                ft.Text("Current Lineup", size=16, weight="bold"),
-                                lineup_display,
-                            ],
-                            spacing=10,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        padding=20,
-                        border=ft.border.all(1, ft.Colors.GREY_400),
-                        border_radius=5,
-                        width=500,
-                    ),
-                    ft.Container(
-                        height=350,
-                        content=ft.Column(
-                            [
-                                ft.Text("Next Potential Lineup", size=16, weight="bold"),
-                                next_lineup_display,
-                            ],
-                            spacing=10,
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        padding=20,
-                        border=ft.border.all(1, ft.Colors.GREY_400),
-                        border_radius=5,
-                        width=500,
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                spacing=20,
-            ),
-            ft.Container(
-                content=ft.Row(
-                    [
-                        ft.ElevatedButton(
-                            text="<---- Back",
-                            bgcolor="red",
-                            on_click=lambda e: page.clean() or page.add(first_page(page, url_input, result_text, submit_button, next_page_button, data_list_view)),
-                            width=80,
-                            height=60,
-                            style=ft.ButtonStyle(padding=20),
-                        ),
-                        ft.ElevatedButton(
-                            text="Lineup",
-                            bgcolor="orange",
-                            on_click=on_lineup_click,
-                            width=200,
-                            height=60,
-                            style=ft.ButtonStyle(padding=20),
-                        ),
-                        ft.ElevatedButton(
-                            text="Open HTML",
-                            bgcolor="yellow",
-                            on_click=lambda e: webbrowser.open(f"file://{os.getcwd()}/index.html", new=0, autoraise=True),
-                            width=200,
-                            height=60,
-                            style=ft.ButtonStyle(padding=20),
-                        ),
-                        ft.ElevatedButton(
-                            text="Reset",
-                            bgcolor="red",
-                            on_click=on_reset_click,
-                            width=80,
-                            height=60,
-                            style=ft.ButtonStyle(padding=20),
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=20,
-                ),
-                padding=10,
-                alignment=ft.alignment.center,
-                expand=True,
-            ),
+            ft.Text("Check-in Status", size=20, weight="bold"),
+            create_progress_bar(config["total_interview"], checked_in),
+            ft.Text("Interview Status", size=20, weight="bold"),
+            create_progress_bar(checked_in, len(interviewed)),
         ],
-        alignment=ft.MainAxisAlignment.START,
-        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-        expand=True,
+        spacing=10,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
-    return page_layout
+
+    can_undo = False
+    write_html()
+    print("HTML updated after undo")
+    error_message.value = ""
+    page.update()

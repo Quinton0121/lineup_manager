@@ -9,6 +9,39 @@ import webbrowser
 import os
 import shutil
 
+# Helper function to convert timevalue to human-readable format
+def preprocess_google_sheet_data(df):
+    """
+    Preprocesses the Google Sheet DataFrame by converting the 'timevalue' column
+    from Excel serial number to human-readable datetime format.
+    
+    Args:
+        df (pd.DataFrame): The raw DataFrame fetched from Google Sheet.
+    
+    Returns:
+        pd.DataFrame: The processed DataFrame with human-readable 'timevalue'.
+    """
+    print("Preprocessing Google Sheet data...")
+    if df is None or isinstance(df, str) or df.empty:
+        print("Invalid or empty DataFrame, returning as is.")
+        return df
+    
+    # Check if 'timevalue' exists in the DataFrame
+    if 'timevalue' not in df.columns:
+        print("No 'timevalue' column found in DataFrame.")
+        return df
+    
+    # Convert 'timevalue' to human-readable datetime
+    try:
+        df['timevalue'] = df['timevalue'].apply(lambda x: excel_to_datetime(x) if pd.notnull(x) else "N/A")
+        print("Successfully converted 'timevalue' to human-readable format.")
+    except Exception as e:
+        print(f"Error converting 'timevalue': {str(e)}")
+        # Return original DataFrame if conversion fails
+        return df
+    
+    return df
+
 # Show the first page where users enter the Google Sheet URL
 def first_page(page, url_input, result_text, submit_button, next_page_button, data_list_view):
     print("Showing the first page...")
@@ -41,6 +74,9 @@ def update_checked_in_number(data, df=None):
         print(f"Couldn’t get the sheet: {df}")
         return 0, None
     
+    # Preprocess the DataFrame to convert timevalue
+    df = preprocess_google_sheet_data(df)
+    
     # Count people marked as checked in
     checked_in_count = len(df[df["Checked In"].isin([True, "Yes", 1, "TRUE"])])
     print(f"Found {checked_in_count} people checked in!")
@@ -57,6 +93,9 @@ def update_checked_in_number(data, df=None):
 # Pick the next group of people to line up
 def get_next_lineup(df, npg, interviewed):
     print(f"Fetching the next {npg} people for lineup...")
+    # Preprocess the DataFrame if not already done
+    df = preprocess_google_sheet_data(df)
+    
     # Find people who checked in but haven’t been interviewed
     checked_in = df["Checked In"].isin([True, "Yes", 1, "TRUE"])
     not_interviewed = ~df["No"].isin(interviewed)
@@ -152,6 +191,9 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
     error_message.value = ""  # Clear any previous error message
     latecomer_input.value = ""  # Clear the input field immediately after button press
 
+    # Preprocess the DataFrame
+    df = preprocess_google_sheet_data(df)
+
     # Validate input
     if not latecomer_no or not str(latecomer_no).strip():
         print("Validation failed: Empty or invalid input")
@@ -215,7 +257,7 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
             latecomer_data = {
                 "No": latecomer_no,
                 "中文姓名": latecomer_row["中文姓名"].values[0] if "中文姓名" in latecomer_row else "N/A",
-                "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else 0,
+                "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else "N/A",
                 "latecomer": True
             }
             current_lineup.append(latecomer_data)
@@ -265,11 +307,10 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
     
     total_interviews, checked_in, npg = get_checkin_data()
     checked_in, df = update_checked_in_number(None)
-    total_interviews = 826
-    
-    init_time_serial = get_init_time()
-    init_time_display = excel_to_datetime(init_time_serial) if init_time_serial else "Not Set"
-    
+    # Remove total_interviews hardcoding (826), rely on config.json instead
+
+    # Preprocess the data if available
+    df = preprocess_google_sheet_data(df)
     data_message = ft.Text("No Google Sheet data available") if data is None or data.empty else ft.Text(f"Loaded {len(data)} rows from Google Sheet")
 
     with open("config.json", "r") as config_file:
@@ -292,6 +333,8 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
     next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
     print(f"Next potential lineup: {[person['No'] for person in next_potential_lineup]}")
 
+    can_undo = True
+
     latecomer_input = ft.TextField(
         label="Latecomer No",
         width=200,
@@ -301,6 +344,21 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
     jump_button = ft.ElevatedButton(
         text="Jump In Line",
         bgcolor="Green",
+        width=150,
+        height=40,
+        style=ft.ButtonStyle(padding=10),
+    )
+    
+    # New Total Interviews field and Confirm button
+    total_interviews_input = ft.TextField(
+        label="Total Interviews",
+        width=200,
+        value=str(total_interviews),
+        input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9]", replacement_string=""),
+    )
+    confirm_button = ft.ElevatedButton(
+        text="Confirm",
+        bgcolor="blue",
         width=150,
         height=40,
         style=ft.ButtonStyle(padding=10),
@@ -327,19 +385,16 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
         height=250,
     )
 
-    # Current Lineup Display
     lineup_display = ft.Column(
         [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in current_lineup] if current_lineup else [ft.Text("No current lineup")],
         spacing=5
     )
 
-    # Last Lineup Display
     last_lineup_display = ft.Column(
         [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}") for person in last_lineup] if last_lineup else [ft.Text("No previous lineup")],
         spacing=5
     )
 
-    # Next Potential Lineup Display
     next_lineup_display = ft.Column(
         [ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") for person in next_potential_lineup] if next_potential_lineup else [ft.Text("No next lineup available")],
         spacing=5
@@ -350,14 +405,13 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
     )
 
     def on_lineup_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup
+        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup, can_undo
         print("You clicked the Lineup button!")
         with open("config.json", "r") as config_file:
             config = json.load(config_file)
         current_npg = config["npg"]
         print(f"Fetching {current_npg} people for the lineup...")
         new_checked_in, df = update_checked_in_number(None)
-        print(f"Quinton Logging************: new_checked_in = {new_checked_in} , df = {df}")
         if isinstance(df, str):
             print(f"Problem fetching data: {df}")
             lineup_display.controls = [ft.Text("Failed to fetch lineup", color=ft.colors.RED)]
@@ -396,7 +450,6 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                     ]
                 else:
                     last_lineup_display.controls = [ft.Text("No previous lineup")]
-                # Update next potential lineup
                 next_potential_lineup = get_next_lineup(df, current_npg, interviewed)
                 next_lineup_display.controls = [
                     ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}") 
@@ -405,7 +458,7 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                 progress_box.content = ft.Column(
                     [
                         ft.Text("Check-in Status", size=20, weight="bold"),
-                        create_progress_bar(total_interviews, new_checked_in),
+                        create_progress_bar(config["total_interview"], new_checked_in),  # Use updated total_interview
                         ft.Text("Interview Status", size=20, weight="bold"),
                         create_progress_bar(new_checked_in, len(interviewed)),
                     ],
@@ -413,19 +466,17 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 )
                 print(f"Added Group #{group_number}: {[person['No'] for person in next_group]}")
+                can_undo = True
                 write_html()
         page.update()
 
     def on_reset_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup
+        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup, can_undo
         print("Reset button clicked!")
-
         def confirm_reset(e):
-            print(f"Dialog button clicked: {e.control.text}")
             if e.control.text == "Yes":
                 shutil.copy("config.json", "backup_config1.json")
                 print("Backed up config.json to backup_config1.json")
-                
                 with open("config.json", "r") as config_file:
                     config = json.load(config_file)
                 config["interviewed"] = []
@@ -435,7 +486,6 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                 with open("config.json", "w") as config_file:
                     json.dump(config, config_file, indent=4)
                 print("Reset config.json: interviewed, current_lineup, lineup_history, and next_group cleared")
-
                 interviewed.clear()
                 current_lineup.clear()
                 lineup_history.clear()
@@ -450,17 +500,19 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                 progress_box.content = ft.Column(
                     [
                         ft.Text("Check-in Status", size=20, weight="bold"),
-                        create_progress_bar(total_interviews, checked_in),
+                        create_progress_bar(config["total_interview"], checked_in),
                         ft.Text("Interview Status", size=20, weight="bold"),
                         create_progress_bar(checked_in, len(interviewed)),
                     ],
                     spacing=10,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 )
+                can_undo = True
+                write_html()
+                print("HTML updated after reset")
                 page.update()
             dlg.open = False
             page.update()
-
         dlg = ft.AlertDialog(
             title=ft.Text("Reset Confirmation"),
             content=ft.Text("Are you sure you want to reset? This will clear all interviewed data."),
@@ -470,10 +522,134 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-        print("Opening reset confirmation dialog")
         page.overlay.append(dlg)
         dlg.open = True
         page.update()
+
+    def on_undo_click(event):
+        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup, can_undo
+        print("Undo button clicked!")
+        if not can_undo:
+            print("Undo already performed - must click Lineup to enable undo again")
+            error_message.value = "Undo already performed. Click Lineup to enable undo again."
+            page.update()
+            return
+        if not lineup_history:
+            print("Nothing to undo - lineup history is empty")
+            error_message.value = "Nothing to undo."
+            page.update()
+            return
+
+        shutil.copy("config.json", "backup_config_undo.json")
+        print("Backed up config.json to backup_config_undo.json")
+
+        last_group = lineup_history[-1]
+        last_group_nos = [person["No"] for person in last_group["people"]]
+        print(f"Undoing Group #{last_group['group_number']}: {last_group_nos}")
+
+        lineup_history.pop()
+        group_number -= 1
+
+        # Update current_lineup
+        if lineup_history:
+            current_lineup[:] = lineup_history[-1]["people"]
+        else:
+            current_lineup.clear()
+
+        # Rebuild interviewed list from remaining lineup_history and current_lineup
+        interviewed[:] = []
+        for group in lineup_history:
+            interviewed.extend([person["No"] for person in group["people"]])
+        interviewed.extend([person["No"] for person in current_lineup])
+        interviewed = list(set(interviewed))  # Remove duplicates if any
+
+        with open("config.json", "r") as config_file:
+            config = json.load(config_file)
+        config["interviewed"] = interviewed
+        config["current_lineup"] = current_lineup
+        config["lineup_history"] = lineup_history
+        with open("config.json", "w") as config_file:
+            json.dump(config, config_file, indent=4)
+        print("Config.json updated after undo")
+
+        # Update data.json (assuming it should reflect all interviewed numbers)
+        with open('data.json', 'r') as data_file:
+            data = json.load(data_file)
+        data['line'] = data['line'][:-len(last_group_nos)]
+        data['npg'] = data['npg'][:-1]
+        with open('data.json', 'w') as data_file:
+            json.dump(data, data_file, indent=4)
+        print("Data.json updated after undo")
+
+        # Update UI components
+        lineup_display.controls = [
+            ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
+            for person in current_lineup
+        ] if current_lineup else [ft.Text("No current lineup")]
+
+        if len(lineup_history) >= 2:
+            last_lineup_display.controls = [
+                ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
+                for person in lineup_history[-2]["people"]
+            ]
+        else:
+            last_lineup_display.controls = [ft.Text("No previous lineup")]
+
+        next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
+        next_lineup_display.controls = [
+            ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}")
+            for person in next_potential_lineup
+        ] if next_potential_lineup else [ft.Text("No next lineup available")]
+
+        progress_box.content = ft.Column(
+            [
+                ft.Text("Check-in Status", size=20, weight="bold"),
+                create_progress_bar(config["total_interview"], checked_in),
+                ft.Text("Interview Status", size=20, weight="bold"),
+                create_progress_bar(checked_in, len(interviewed)),
+            ],
+            spacing=10,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+        can_undo = False
+        write_html()
+        print("HTML updated after undo")
+        error_message.value = ""
+        page.update()
+
+    def on_confirm_click(event):
+        nonlocal total_interviews, progress_box
+        try:
+            new_total = int(total_interviews_input.value)
+            if new_total < 0:
+                error_message.value = "Total Interviews cannot be negative."
+                page.update()
+                return
+            total_interviews = new_total
+            with open("config.json", "r") as config_file:
+                config = json.load(config_file)
+            config["total_interview"] = total_interviews
+            with open("config.json", "w") as config_file:
+                json.dump(config, config_file, indent=4)
+            print(f"Updated config.json with total_interview: {total_interviews}")
+            progress_box.content = ft.Column(
+                [
+                    ft.Text("Check-in Status", size=20, weight="bold"),
+                    create_progress_bar(total_interviews, checked_in),
+                    ft.Text("Interview Status", size=20, weight="bold"),
+                    create_progress_bar(checked_in, len(interviewed)),
+                ],
+                spacing=10,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            )
+            error_message.value = ""
+            page.update()
+        except ValueError:
+            error_message.value = "Please enter a valid number."
+            page.update()
+
+    confirm_button.on_click = on_confirm_click
 
     page_layout = ft.Column(
         [
@@ -508,7 +684,6 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                                     alignment=ft.MainAxisAlignment.CENTER,
                                     spacing=10,
                                 ),
-                                ft.Container(height=35),
                                 ft.Column(
                                     [
                                         ft.Text("Jump In Line", size=16, weight="bold"),
@@ -539,15 +714,12 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                         height=250,
                         content=ft.Column(
                             [
-                                ft.Text("Start Time", size=16, weight="bold"),
-                                ft.TextField(
-                                    label="(YYYY-MM-DD HH:MM:SS)",
-                                    value=init_time_display,
-                                    on_change=lambda e: update_config_init_time(e.control.value),
-                                    width=200,
-                                ),
+                                ft.Text("Total Interviews", size=16, weight="bold"),
+                                total_interviews_input,
+                                confirm_button,
                             ],
                             spacing=10,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
                         padding=3,
                         border=ft.border.all(1, ft.Colors.GREY_400),
@@ -635,6 +807,14 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                             bgcolor="yellow",
                             on_click=lambda e: webbrowser.open(f"file://{os.getcwd()}/index.html", new=0, autoraise=True),
                             width=200,
+                            height=60,
+                            style=ft.ButtonStyle(padding=20),
+                        ),
+                        ft.ElevatedButton(
+                            text="Undo",
+                            bgcolor="#FFDAB9",
+                            on_click=on_undo_click,
+                            width=80,
                             height=60,
                             style=ft.ButtonStyle(padding=20),
                         ),

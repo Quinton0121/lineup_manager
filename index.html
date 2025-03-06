@@ -6,8 +6,6 @@
 <meta name="description" content="Description Goes Here">
 <link rel="stylesheet" href="style.css">
     <style>
-
-  
       .st_photo {
           position: fixed;
           right: 0;
@@ -144,12 +142,12 @@
       }  
   
       .flip-card-front {
-          background-color: #ee6b6e;color: white;
+          background-color: #2980b9;color: white;
           color: white;
       }
   
       .flip-card-back {
-          background-color: #2980b9;color: white;
+          background-color: #ee6b6e;color: white;
           color: white;
           transform: rotateX(900deg);
       }
@@ -210,10 +208,10 @@
                         <div class="flip-card1">
                             <div class="flip-card-inner1">
                                 <div class="flip-card-front">
-                                    <h1 class="super-font" id="Qoos1">33</h1>
+                                    <h1 class="super-font" id="Qoos1">13</h1>
                                 </div>
                                 <div class="flip-card-back">
-                                    <h1 class="super-font" id="Qoos2">44</h1>
+                                    <h1 class="super-font" id="Qoos2">14</h1>
                                 </div>
                             </div>
                         </div>
@@ -225,10 +223,10 @@
                         <div class="flip-card2">
                             <div class="flip-card-inner2">
                                 <div class="flip-card-front">
-                                    <h1 class="super-font" id="Qoos3">39</h1>
+                                    <h1 class="super-font" id="Qoos3">000</h1>
                                 </div>
                                 <div class="flip-card-back">
-                                    <h1 class="super-font" id="Qoos4">46</h1>
+                                    <h1 class="super-font" id="Qoos4">16</h1>
                                 </div>
                             </div>
                         </div>
@@ -243,7 +241,7 @@
                                     <h1 class="super-font" id="Qoos5">000</h1>
                                 </div>
                                 <div class="flip-card-back">
-                                    <h1 class="super-font" id="Qoos6">48</h1>
+                                    <h1 class="super-font" id="Qoos6">17</h1>
                                 </div>
                             </div>
                         </div>
@@ -344,18 +342,65 @@
         };
     
         function numberToCantonese(num) {
-            return num.split('').map(digit => cantoneseNumbers[digit]).join(' ');
+            const digits = num.split('');
+            const secondDigit = digits[1];
+            const lastDigit = digits[digits.length - 1];
+    
+            if (digits.length === 3) {
+                if (secondDigit === "0") {
+                    // e.g., "103" -> "jat1 baak3 saam1"
+                    if (lastDigit === "0") {
+                        // e.g., "100" -> "jat1 baak3"
+                        return `${cantoneseNumbers[digits[0]]} baak3`;
+                    }
+                    return `${cantoneseNumbers[digits[0]]} baak3 ${cantoneseNumbers[digits[2]]}`;
+                } else if (lastDigit === "0") {
+                    // e.g., "130" -> "jat1 baak3 saam1 sap6"
+                    return `${cantoneseNumbers[digits[0]]} baak3 ${cantoneseNumbers[digits[1]]} sap6`;
+                }
+                // e.g., "123" -> "jat1 baak3 ji6 sap6 saam1"
+                return `${cantoneseNumbers[digits[0]]} baak3 ${cantoneseNumbers[digits[1]]} sap6 ${cantoneseNumbers[digits[2]]}`;
+            } else if (digits.length === 2) {
+                // 2-digit: e.g., "10" -> "jat1 sap6"
+                if (lastDigit === "0") {
+                    return `${cantoneseNumbers[digits[0]]} sap6`;
+                }
+                return `${cantoneseNumbers[digits[0]]} sap6 ${cantoneseNumbers[digits[1]]}`;
+            } else {
+                // 1-digit: e.g., "1" -> "jat1"
+                return cantoneseNumbers[digits[0]];
+            }
         }
     
         function numberToMandarin(num) {
-            if (num.length > 1) {
-                if (num < 20) {
-                    return num === "10" ? "十" : "十" + mandarinNumbers[num[1]];
-                } else {
-                    return num.split('').map(digit => mandarinNumbers[digit]).join('');
+            const digits = num.split('');
+            const secondDigit = digits[1];
+            const lastDigit = digits[digits.length - 1];
+    
+            if (digits.length === 3) {
+                if (secondDigit === "0") {
+                    // e.g., "103" -> "一 百 三"
+                    if (lastDigit === "0") {
+                        // e.g., "100" -> "一 百"
+                        return `${mandarinNumbers[digits[0]]} 百`;
+                    }
+                    return `${mandarinNumbers[digits[0]]} 百 ${mandarinNumbers[digits[2]]}`;
+                } else if (lastDigit === "0") {
+                    // e.g., "130" -> "一 百 三 十"
+                    return `${mandarinNumbers[digits[0]]} 百 ${mandarinNumbers[digits[1]]} 十`;
                 }
+                // e.g., "123" -> "一 百 二 十 三"
+                return `${mandarinNumbers[digits[0]]} 百 ${mandarinNumbers[digits[1]]} 十 ${mandarinNumbers[digits[2]]}`;
+            } else if (digits.length === 2) {
+                // 2-digit: e.g., "10" -> "一 十"
+                if (lastDigit === "0") {
+                    return `${mandarinNumbers[digits[0]]} 十`;
+                }
+                return `${mandarinNumbers[digits[0]]} 十 ${mandarinNumbers[digits[1]]}`;
+            } else {
+                // 1-digit: e.g., "1" -> "一"
+                return mandarinNumbers[digits[0]];
             }
-            return mandarinNumbers[num];
         }
     
         function speakNumbers() {
@@ -379,7 +424,7 @@
                     const cantoneseText = numbers.map(num => numberToCantonese(num)).join(", ");
                     const cantoneseUtterance = new SpeechSynthesisUtterance(cantoneseText);
                     cantoneseUtterance.lang = 'yue';
-                    cantoneseUtterance.rate = 1.0;
+                    cantoneseUtterance.rate = 0.5; // Keeping slower rate from previous request
                     cantoneseUtterance.onstart = () => console.log("Cantonese numbers started");
                     cantoneseUtterance.onend = () => {
                         console.log("Cantonese numbers finished, starting Audio2");
@@ -388,7 +433,7 @@
                             console.log("Audio2 finished, starting English numbers");
                             const englishUtterance = new SpeechSynthesisUtterance(numbers.join(", "));
                             englishUtterance.lang = 'en-US';
-                            englishUtterance.rate = 1.0;
+                            englishUtterance.rate = 0.5; // Keeping slower rate
                             englishUtterance.onstart = () => console.log("English numbers started");
                             englishUtterance.onend = () => {
                                 console.log("English numbers finished, starting Audio3");
@@ -399,7 +444,7 @@
                                     console.log("Mandarin text to speak:", mandarinText);
                                     const mandarinUtterance = new SpeechSynthesisUtterance(mandarinText);
                                     mandarinUtterance.lang = 'zh-CN';
-                                    mandarinUtterance.rate = 1.0;
+                                    mandarinUtterance.rate = 0.5; // Keeping slower rate
                                     mandarinUtterance.onstart = () => console.log("Mandarin numbers started");
                                     mandarinUtterance.onend = () => console.log("Mandarin numbers finished");
                                     mandarinUtterance.onerror = (event) => console.error("Mandarin error:", event.error);
@@ -423,5 +468,5 @@
             setTimeout(speakNumbers, 1000);
         }
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'91ba4e323d606766',t:'MTc0MTE4NDk2NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

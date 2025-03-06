@@ -5,32 +5,35 @@
     "init_time": 44601.42054398148,
     "last_timevalue": 44999.41963,
     "last_no": 823,
-    "number_of_checked_in": 6,
+    "number_of_checked_in": 41,
     "number_of_not_check_in": 0,
     "next_group": [],
     "number_of_people_interviewed": 774,
     "file_name": 165,
     "current_lineup": [
         {
-            "No": 13,
-            "\u4e2d\u6587\u59d3\u540d": "\u6881\u6069\u665e",
-            "timevalue": 0.0
+            "No": 5,
+            "\u4e2d\u6587\u59d3\u540d": "\u912d\u7b60\u777f",
+            "timevalue": "2025-03-05 10:12:51"
         },
         {
-            "No": 4,
-            "\u4e2d\u6587\u59d3\u540d": "\u9673\u73a5\u582f",
-            "timevalue": 45721.42555
+            "No": 10,
+            "\u4e2d\u6587\u59d3\u540d": "\u6797\u6cf0\u7136",
+            "timevalue": "2025-03-05 10:12:54"
         },
         {
-            "No": 2,
-            "\u4e2d\u6587\u59d3\u540d": "\u9673\u5ba5\u7fb2",
-            "timevalue": 45721.42558
+            "No": 8,
+            "\u4e2d\u6587\u59d3\u540d": "\u6613\u5ff5\u7956",
+            "timevalue": "2025-03-05 10:12:59"
         }
     ],
     "interviewed": [
-        13,
+        2,
         4,
-        2
+        5,
+        8,
+        10,
+        13
     ],
     "lineup_history": [
         {
@@ -39,17 +42,38 @@
                 {
                     "No": 13,
                     "\u4e2d\u6587\u59d3\u540d": "\u6881\u6069\u665e",
-                    "timevalue": 0.0
+                    "timevalue": "1899-12-30 00:00:00"
                 },
                 {
                     "No": 4,
                     "\u4e2d\u6587\u59d3\u540d": "\u9673\u73a5\u582f",
-                    "timevalue": 45721.42555
+                    "timevalue": "2025-03-05 10:12:47"
                 },
                 {
                     "No": 2,
                     "\u4e2d\u6587\u59d3\u540d": "\u9673\u5ba5\u7fb2",
-                    "timevalue": 45721.42558
+                    "timevalue": "2025-03-05 10:12:50"
+                }
+            ],
+            "npg": 3
+        },
+        {
+            "group_number": 2,
+            "people": [
+                {
+                    "No": 5,
+                    "\u4e2d\u6587\u59d3\u540d": "\u912d\u7b60\u777f",
+                    "timevalue": "2025-03-05 10:12:51"
+                },
+                {
+                    "No": 10,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6797\u6cf0\u7136",
+                    "timevalue": "2025-03-05 10:12:54"
+                },
+                {
+                    "No": 8,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6613\u5ff5\u7956",
+                    "timevalue": "2025-03-05 10:12:59"
                 }
             ],
             "npg": 3
