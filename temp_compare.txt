@@ -1,81 +1,101 @@
-def on_undo_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup, can_undo
-        print("Undo button clicked!")
-        if not can_undo:
-            print("Undo already performed - must click Lineup to enable undo again")
-            error_message.value = "Undo already performed. Click Lineup to enable undo again."
-            page.update()
-            return
-        if not lineup_history:
-            print("Nothing to undo - lineup history is empty")
-            error_message.value = "Nothing to undo."
-            page.update()
-            return
+def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display, progress_box, error_message, latecomer_input):  # Added latecomer_input parameter
+    print(f"Attempting to add latecomer No: {latecomer_no} (type: {type(latecomer_no)})")
+    error_message.value = ""  # Clear any previous error message
+    latecomer_input.value = ""  # Clear the input field immediately after button press
 
-        shutil.copy("config.json", "backup_config_undo.json")
-        print("Backed up config.json to backup_config_undo.json")
+    # Preprocess the DataFrame
+    df = preprocess_google_sheet_data(df)
 
-        last_group = lineup_history[-1]
-        last_group_nos = [person["No"] for person in last_group["people"]]
-        print(f"Undoing Group #{last_group['group_number']}: {last_group_nos}")
+    # Validate input
+    if not latecomer_no or not str(latecomer_no).strip():
+        print("Validation failed: Empty or invalid input")
+        error_message.value = "Please enter a valid number"
+        page.update()
+        return
 
-        lineup_history.pop()
-        group_number -= 1
-        interviewed[:] = [no for no in interviewed if no not in last_group_nos]
-        if lineup_history:
-            current_lineup[:] = lineup_history[-1]["people"] if len(lineup_history) >= 1 else []
-        else:
-            current_lineup.clear()
+    try:
+        latecomer_no = int(float(str(latecomer_no)))
+        print(f"Normalized latecomer No: {latecomer_no}")
+    except ValueError:
+        print("Validation failed: Cannot convert to integer")
+        error_message.value = "Please enter a valid number"
+        page.update()
+        return
 
-        with open("config.json", "r") as config_file:
-            config = json.load(config_file)
-        config["interviewed"] = interviewed
-        config["current_lineup"] = current_lineup
-        config["lineup_history"] = lineup_history
-        with open("config.json", "w") as config_file:
-            json.dump(config, config_file, indent=4)
-        print("Config.json updated after undo")
+    # Refresh checked-in data
+    checked_in, df = update_checked_in_number(None)
+    print(f"Refreshed DataFrame with {checked_in} checked-in rows")
 
-        with open('data.json', 'r') as data_file:
-            data = json.load(data_file)
-        data['line'] = data['line'][:-len(last_group_nos)]
-        data['npg'] = data['npg'][:-1]
-        with open('data.json', 'w') as data_file:
-            json.dump(data, data_file, indent=4)
-        print("Data.json updated after undo")
+    # Clean and prepare DataFrame
+    df["No"] = pd.to_numeric(df["No"], errors='coerce')
+    clean_df = df.dropna(subset=["No"]).copy()
+    clean_df["No"] = clean_df["No"].astype(int)
+    print(f"Cleaned DataFrame 'No' values: {clean_df['No'].tolist()}")
 
-        lineup_display.controls = [
-            ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
-            for person in current_lineup
-        ] if current_lineup else [ft.Text("No current lineup")]
+    # Check if the person exists in the DataFrame
+    person_row = clean_df[clean_df["No"] == latecomer_no]
+    if person_row.empty:
+        print(f"No {latecomer_no} not found in DataFrame")
+        error_message.value = f"No {latecomer_no} not found"
+        page.update()
+        return
 
-        if len(lineup_history) >= 2:
-            last_lineup_display.controls = [
+    # Check if the person has checked in
+    checked_in_df = clean_df[clean_df["Checked In"].isin([True, "Yes", 1, "TRUE"])]
+    latecomer_row = checked_in_df[checked_in_df["No"] == latecomer_no]
+    if latecomer_row.empty:
+        print(f"No {latecomer_no} is not checked in")
+        error_message.value = f"No {latecomer_no} is not checked in"  # Updated message
+        page.update()
+        return
+
+    # Check if the person is already interviewed or in the current lineup
+    current_lineup_nos = [int(p["No"]) for p in current_lineup]
+    if latecomer_no in interviewed:
+        print(f"No {latecomer_no} is already interviewed")
+        error_message.value = f"No {latecomer_no} is already interviewed"  # Updated message
+        page.update()
+        return
+    elif latecomer_no in current_lineup_nos:
+        print(f"No {latecomer_no} is already in the current lineup")
+        error_message.value = f"No {latecomer_no} is already in the current lineup"  # Updated message
+        page.update()
+        return
+
+    # If all checks pass, proceed with confirmation
+    def confirm_jump(e):
+        if e.control.text == "Yes":
+            print(f"Confirmed: Adding No {latecomer_no} as latecomer")
+            latecomer_data = {
+                "No": latecomer_no,
+                "中文姓名": latecomer_row["中文姓名"].values[0] if "中文姓名" in latecomer_row else "N/A",
+                "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else "N/A",
+                "latecomer": True
+            }
+            current_lineup.append(latecomer_data)
+            interviewed.append(latecomer_no)
+
+            with open("config.json", "r") as config_file:
+                config = json.load(config_file)
+            config["current_lineup"] = current_lineup
+            config["interviewed"] = interviewed
+            if lineup_history:
+                config["lineup_history"][-1]["people"] = current_lineup
+            with open("config.json", "w") as config_file:
+                json.dump(config, config_file, indent=4)
+                print("Config updated with latecomer")
+
+            lineup_display.controls = [
                 ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
-                for person in lineup_history[-2]["people"]
+                for person in current_lineup
             ]
+            print("Lineup display updated")
+
+            progress_box.content.controls[3] = create_progress_bar(checked_in, len(interviewed))
+            write_html()
+            print("HTML updated")
+            page.update()
         else:
-            last_lineup_display.controls = [ft.Text("No previous lineup")]
-
-        next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
-        next_lineup_display.controls = [
-            ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}")
-            for person in next_potential_lineup
-        ] if next_potential_lineup else [ft.Text("No next lineup available")]
-
-        progress_box.content = ft.Column(
-            [
-                ft.Text("Check-in Status", size=20, weight="bold"),
-                create_progress_bar(config["total_interview"], checked_in),
-                ft.Text("Interview Status", size=20, weight="bold"),
-                create_progress_bar(checked_in, len(interviewed)),
-            ],
-            spacing=10,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        )
-
-        can_undo = False
-        write_html()
-        print("HTML updated after undo")
-        error_message.value = ""
+            print("Jump in line canceled")
+        dlg.open = False
         page.update()

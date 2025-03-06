@@ -164,6 +164,13 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                                             on_change=lambda e: [
                                                 update_config_npg(e.control.value),
                                                 e.control.parent.controls[1].__setattr__('value', str(int(e.control.value))),
+                                                # Fetch and preprocess df to ensure only checked-in people are considered
+                                                new_checked_in, new_df = update_checked_in_number(None) if not isinstance(df, str) else (0, None),
+                                                # Update next_lineup_display with fresh, filtered data
+                                                setattr(next_lineup_display, 'controls', [
+                                                    ft.Text(f"No: {p['No']} - {p['中文姓名']} - {p['timevalue']}")
+                                                    for p in get_next_lineup(new_df if new_df is not None else df, int(e.control.value), interviewed)
+                                                ] if (new_df is not None and get_next_lineup(new_df, int(e.control.value), interviewed)) else [ft.Text("No next lineup available")]),
                                                 page.update()
                                             ],
                                             width=200,

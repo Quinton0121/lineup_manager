@@ -186,7 +186,7 @@ def write_html():
         print(f"Error in write_html: {str(e)}")
         file.write(html_string)
 
-def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display, progress_box, error_message, latecomer_input):  # Added latecomer_input parameter
+def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display, progress_box, error_message, latecomer_input):
     print(f"Attempting to add latecomer No: {latecomer_no} (type: {type(latecomer_no)})")
     error_message.value = ""  # Clear any previous error message
     latecomer_input.value = ""  # Clear the input field immediately after button press
@@ -233,7 +233,7 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
     latecomer_row = checked_in_df[checked_in_df["No"] == latecomer_no]
     if latecomer_row.empty:
         print(f"No {latecomer_no} is not checked in")
-        error_message.value = f"No {latecomer_no} is not checked in"  # Updated message
+        error_message.value = f"No {latecomer_no} is not checked in"
         page.update()
         return
 
@@ -241,52 +241,72 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
     current_lineup_nos = [int(p["No"]) for p in current_lineup]
     if latecomer_no in interviewed:
         print(f"No {latecomer_no} is already interviewed")
-        error_message.value = f"No {latecomer_no} is already interviewed"  # Updated message
+        error_message.value = f"No {latecomer_no} is already interviewed"
         page.update()
         return
     elif latecomer_no in current_lineup_nos:
         print(f"No {latecomer_no} is already in the current lineup")
-        error_message.value = f"No {latecomer_no} is already in the current lineup"  # Updated message
+        error_message.value = f"No {latecomer_no} is already in the current lineup"
         page.update()
         return
 
-    # If all checks pass, proceed with confirmation
-    def confirm_jump(e):
-        if e.control.text == "Yes":
-            print(f"Confirmed: Adding No {latecomer_no} as latecomer")
-            latecomer_data = {
-                "No": latecomer_no,
-                "中文姓名": latecomer_row["中文姓名"].values[0] if "中文姓名" in latecomer_row else "N/A",
-                "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else "N/A",
-                "latecomer": True
-            }
-            current_lineup.append(latecomer_data)
-            interviewed.append(latecomer_no)
+    # Directly add the latecomer without confirmation
+    print(f"Adding No {latecomer_no} as latecomer")
+    latecomer_data = {
+        "No": latecomer_no,
+        "中文姓名": latecomer_row["中文姓名"].values[0] if "中文姓名" in latecomer_row else "N/A",
+        "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else "N/A",
+        "latecomer": True  # Mark as latecomer
+    }
 
-            with open("config.json", "r") as config_file:
-                config = json.load(config_file)
-            config["current_lineup"] = current_lineup
-            config["interviewed"] = interviewed
-            if lineup_history:
-                config["lineup_history"][-1]["people"] = current_lineup
-            with open("config.json", "w") as config_file:
-                json.dump(config, config_file, indent=4)
-                print("Config updated with latecomer")
+    # Add to current_lineup
+    current_lineup.append(latecomer_data)
+    # Add to interviewed only if not already there
+    if latecomer_no not in interviewed:
+        interviewed.append(latecomer_no)
 
-            lineup_display.controls = [
-                ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}")
-                for person in current_lineup
-            ]
-            print("Lineup display updated")
+    # Load the latest config.json to ensure we’re working with the current state
+    with open("config.json", "r") as config_file:
+        config = json.load(config_file)
 
-            progress_box.content.controls[3] = create_progress_bar(checked_in, len(interviewed))
-            write_html()
-            print("HTML updated")
-            page.update()
-        else:
-            print("Jump in line canceled")
-        dlg.open = False
-        page.update()
+    # Update current_lineup in config
+    config["current_lineup"] = current_lineup
+    config["interviewed"] = interviewed
+
+    # Update lineup_history: modify the last group or create a new one if empty
+    if "lineup_history" not in config or not config["lineup_history"]:
+        # If no lineup_history exists, create the first group
+        config["lineup_history"] = [{
+            "group_number": 1,
+            "people": [latecomer_data],
+            "npg": config.get("npg", 1)  # Default to 1 if npg isn’t set
+        }]
+        print("Created first group in lineup_history with latecomer")
+    else:
+        # Update the last group in lineup_history with the current_lineup
+        config["lineup_history"][-1]["people"] = current_lineup
+        print(f"Updated last group in lineup_history (Group #{config['lineup_history'][-1]['group_number']}): {[p['No'] for p in current_lineup]}")
+
+    # Save the updated config back to config.json
+    with open("config.json", "w") as config_file:
+        json.dump(config, config_file, indent=4)
+        print("Config updated with latecomer in current group and lineup_history")
+
+    # Update lineup_display with highlighting for latecomers
+    lineup_display.controls = [
+        ft.Text(
+            f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}",
+            color=ft.colors.RED if person.get('latecomer', False) else ft.colors.BLACK
+        )
+        for person in current_lineup
+    ]
+    print("Lineup display updated with latecomer highlighted")
+
+    # Update progress bar
+    progress_box.content.controls[3] = create_progress_bar(checked_in, len(interviewed))
+    write_html()
+    print("HTML updated")
+    page.update()
 
     print(f"Showing confirmation dialog for No: {latecomer_no}")
     dlg = ft.AlertDialog(
@@ -405,12 +425,21 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
     )
 
     def on_lineup_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup, can_undo
+    # Remove lineup_history from nonlocal since we'll fetch it fresh
+        nonlocal interviewed, current_lineup, group_number, next_potential_lineup, can_undo
         print("You clicked the Lineup button!")
+        
+        # Load the latest config.json to get the most updated lineup_history
         with open("config.json", "r") as config_file:
             config = json.load(config_file)
+        
         current_npg = config["npg"]
+        # Get the latest lineup_history directly from config.json
+        lineup_history = config.get("lineup_history", [])
+        print(f"show Quinn the lineup_history: {lineup_history}")
         print(f"Fetching {current_npg} people for the lineup...")
+        print(f"Lineup history before processing: {[group['group_number'] for group in lineup_history]}")
+        
         new_checked_in, df = update_checked_in_number(None)
         if isinstance(df, str):
             print(f"Problem fetching data: {df}")
@@ -424,16 +453,17 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
             else:
                 for person in next_group:
                     person["No"] = int(person["No"])
-                group_number = len(config.get("lineup_history", [])) + 1
+                group_number = len(lineup_history) + 1  # Use the fresh lineup_history length
                 current_lineup[:] = next_group
                 interviewed.extend([person["No"] for person in next_group])
                 config["current_lineup"] = current_lineup
                 config["interviewed"] = interviewed
+                print(f"Lineup history before appending: {[group['group_number'] for group in lineup_history]}")
                 lineup_history.append({"group_number": group_number, "people": next_group, "npg": current_npg})
                 config["lineup_history"] = lineup_history
                 with open("config.json", "w") as config_file:
                     json.dump(config, config_file, indent=4)
-                
+                    
                 with open('data.json', 'r') as data_file:
                     data = json.load(data_file)
                 for person in next_group:
@@ -458,7 +488,7 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
                 progress_box.content = ft.Column(
                     [
                         ft.Text("Check-in Status", size=20, weight="bold"),
-                        create_progress_bar(config["total_interview"], new_checked_in),  # Use updated total_interview
+                        create_progress_bar(config["total_interview"], new_checked_in),
                         ft.Text("Interview Status", size=20, weight="bold"),
                         create_progress_bar(new_checked_in, len(interviewed)),
                     ],
@@ -527,8 +557,16 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
         page.update()
 
     def on_undo_click(event):
-        nonlocal interviewed, current_lineup, lineup_history, group_number, next_potential_lineup, can_undo
+        nonlocal interviewed, current_lineup, group_number, next_potential_lineup, can_undo
         print("Undo button clicked!")
+        
+        # Load the latest config.json to get the most updated lineup_history
+        with open("config.json", "r") as config_file:
+            config = json.load(config_file)
+        
+        # Fetch lineup_history from config.json instead of relying on nonlocal
+        lineup_history = config.get("lineup_history", [])
+        
         if not can_undo:
             print("Undo already performed - must click Lineup to enable undo again")
             error_message.value = "Undo already performed. Click Lineup to enable undo again."
@@ -563,8 +601,6 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
         interviewed.extend([person["No"] for person in current_lineup])
         interviewed = list(set(interviewed))  # Remove duplicates if any
 
-        with open("config.json", "r") as config_file:
-            config = json.load(config_file)
         config["interviewed"] = interviewed
         config["current_lineup"] = current_lineup
         config["lineup_history"] = lineup_history
@@ -572,7 +608,7 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
             json.dump(config, config_file, indent=4)
         print("Config.json updated after undo")
 
-        # Update data.json (assuming it should reflect all interviewed numbers)
+        # Update data.json
         with open('data.json', 'r') as data_file:
             data = json.load(data_file)
         data['line'] = data['line'][:-len(last_group_nos)]
@@ -595,7 +631,7 @@ def second_page(page, data=None, url_input=None, result_text=None, submit_button
         else:
             last_lineup_display.controls = [ft.Text("No previous lineup")]
 
-        next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
+        next_potential_lineup = get_next_lineup(df, config.get("npg", 3), interviewed) if not isinstance(df, str) else []
         next_lineup_display.controls = [
             ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}")
             for person in next_potential_lineup

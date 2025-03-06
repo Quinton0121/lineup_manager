@@ -1,180 +1,181 @@
 {
-  "beautify JSON": "cmd + shift + j",
-  "total_interview": 826,
-  "npg": 4,
-  "init_time": 44601.42054398148,
-  "last_timevalue": 44999.41963,
-  "last_no": 823,
-  "number_of_checked_in": 31,
-  "number_of_not_check_in": 0,
-  "next_group": [],
-  "number_of_people_interviewed": 774,
-  "file_name": 165,
-  "current_lineup": [
-    {
-      "No": 14,
-      "\u4e2d\u6587\u59d3\u540d": "\u6881\u96ef\u6a3a",
-      "timevalue": "2025-03-06 11:32:03"
-    },
-    {
-      "No": 16,
-      "\u4e2d\u6587\u59d3\u540d": "\u65bd\u51f1\u97fb",
-      "timevalue": "2025-03-06 11:32:06"
-    },
-    {
-      "No": 17,
-      "\u4e2d\u6587\u59d3\u540d": "\u9127\u5353\u8ed2",
-      "timevalue": "2025-03-06 11:32:07"
-    }
-  ],
-  "interviewed": [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    15,
-    14,
-    16,
-    17
-  ],
-  "lineup_history": [
-    {
-      "group_number": 1,
-      "people": [
+    "beautify JSON": "cmd + shift + j",
+    "total_interview": 826,
+    "npg": 3,
+    "init_time": 44601.42054398148,
+    "last_timevalue": 44999.41963,
+    "last_no": 823,
+    "number_of_checked_in": 0,
+    "number_of_not_check_in": 0,
+    "next_group": [],
+    "number_of_people_interviewed": 774,
+    "file_name": 165,
+    "current_lineup": [
         {
-          "No": 1,
-          "\u4e2d\u6587\u59d3\u540d": "\u6b50\u967d\u5955\u6137",
-          "timevalue": "2025-03-06 11:31:47"
+            "No": 19,
+            "\u4e2d\u6587\u59d3\u540d": "\u9ec3\u828a\u5a83",
+            "timevalue": "2025-03-06 16:16:45"
+        }
+    ],
+    "interviewed": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+    ],
+    "lineup_history": [
+        {
+            "group_number": 1,
+            "people": [
+                {
+                    "No": 1,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6b50\u967d\u5955\u6137",
+                    "timevalue": "2025-03-06 16:14:15"
+                },
+                {
+                    "No": 2,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9673\u5ba5\u7fb2",
+                    "timevalue": "2025-03-06 16:14:18"
+                },
+                {
+                    "No": 3,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9673\u5bb6\u4e1e",
+                    "timevalue": "2025-03-06 16:14:19"
+                },
+                {
+                    "No": 4,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9673\u73a5\u582f",
+                    "timevalue": "2025-03-06 16:14:20"
+                }
+            ],
+            "npg": 4
         },
         {
-          "No": 2,
-          "\u4e2d\u6587\u59d3\u540d": "\u9673\u5ba5\u7fb2",
-          "timevalue": "2025-03-06 11:31:49"
+            "group_number": 2,
+            "people": [
+                {
+                    "No": 5,
+                    "\u4e2d\u6587\u59d3\u540d": "\u912d\u7b60\u777f",
+                    "timevalue": "2025-03-06 16:14:21"
+                },
+                {
+                    "No": 6,
+                    "\u4e2d\u6587\u59d3\u540d": NaN,
+                    "timevalue": "2025-03-06 16:14:23"
+                },
+                {
+                    "No": 7,
+                    "\u4e2d\u6587\u59d3\u540d": "\u8a31\u7a0b\u96c5",
+                    "timevalue": "2025-03-06 16:15:12"
+                },
+                {
+                    "No": 8,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6613\u5ff5\u7956",
+                    "timevalue": "2025-03-06 16:15:14"
+                }
+            ],
+            "npg": 4
         },
         {
-          "No": 3,
-          "\u4e2d\u6587\u59d3\u540d": "\u9673\u5bb6\u4e1e",
-          "timevalue": "2025-03-06 11:31:50"
-        }
-      ],
-      "npg": 3
-    },
-    {
-      "group_number": 2,
-      "people": [
-        {
-          "No": 4,
-          "\u4e2d\u6587\u59d3\u540d": "\u9673\u73a5\u582f",
-          "timevalue": "2025-03-06 11:31:51"
+            "group_number": 3,
+            "people": [
+                {
+                    "No": 9,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9ad8\u96c5\u6674",
+                    "timevalue": "2025-03-06 16:16:09"
+                },
+                {
+                    "No": 10,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6797\u6cf0\u7136",
+                    "timevalue": "2025-03-06 16:16:10"
+                },
+                {
+                    "No": 11,
+                    "\u4e2d\u6587\u59d3\u540d": "\u5289\u61c9\u677a",
+                    "timevalue": "2025-03-06 16:16:11"
+                }
+            ],
+            "npg": 3
         },
         {
-          "No": 5,
-          "\u4e2d\u6587\u59d3\u540d": "\u912d\u7b60\u777f",
-          "timevalue": "2025-03-06 11:31:53"
+            "group_number": 4,
+            "people": [
+                {
+                    "No": 12,
+                    "\u4e2d\u6587\u59d3\u540d": "\u674e\u712f\u8b19",
+                    "timevalue": "2025-03-06 16:16:12"
+                },
+                {
+                    "No": 13,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6881\u6069\u665e",
+                    "timevalue": "2025-03-06 16:16:14"
+                },
+                {
+                    "No": 14,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6881\u96ef\u6a3a",
+                    "timevalue": "2025-03-06 16:16:14"
+                }
+            ],
+            "npg": 3
         },
         {
-          "No": 6,
-          "\u4e2d\u6587\u59d3\u540d": NaN,
-          "timevalue": "2025-03-06 11:31:54"
-        }
-      ],
-      "npg": 3
-    },
-    {
-      "group_number": 3,
-      "people": [
-        {
-          "No": 7,
-          "\u4e2d\u6587\u59d3\u540d": "\u8a31\u7a0b\u96c5",
-          "timevalue": "2025-03-06 11:31:56"
+            "group_number": 5,
+            "people": [
+                {
+                    "No": 15,
+                    "\u4e2d\u6587\u59d3\u540d": "\u6881\u82e1\u6f7c",
+                    "timevalue": "2025-03-06 16:16:30"
+                },
+                {
+                    "No": 16,
+                    "\u4e2d\u6587\u59d3\u540d": "\u65bd\u51f1\u97fb",
+                    "timevalue": "2025-03-06 16:16:43"
+                },
+                {
+                    "No": 17,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9127\u5353\u8ed2",
+                    "timevalue": "2025-03-06 16:16:44"
+                }
+            ],
+            "npg": 3
         },
         {
-          "No": 8,
-          "\u4e2d\u6587\u59d3\u540d": "\u6613\u5ff5\u7956",
-          "timevalue": "2025-03-06 11:31:56"
+            "group_number": 6,
+            "people": [
+                {
+                    "No": 18,
+                    "\u4e2d\u6587\u59d3\u540d": "\u4f59\u6d69\u5ef7",
+                    "timevalue": "2025-03-06 16:16:45"
+                }
+            ],
+            "npg": 1
         },
         {
-          "No": 9,
-          "\u4e2d\u6587\u59d3\u540d": "\u9ad8\u96c5\u6674",
-          "timevalue": "2025-03-06 11:31:57"
+            "group_number": 7,
+            "people": [
+                {
+                    "No": 19,
+                    "\u4e2d\u6587\u59d3\u540d": "\u9ec3\u828a\u5a83",
+                    "timevalue": "2025-03-06 16:16:45"
+                }
+            ],
+            "npg": 1
         }
-      ],
-      "npg": 3
-    },
-    {
-      "group_number": 4,
-      "people": [
-        {
-          "No": 10,
-          "\u4e2d\u6587\u59d3\u540d": "\u6797\u6cf0\u7136",
-          "timevalue": "2025-03-06 11:31:58"
-        }
-      ],
-      "npg": 1
-    },
-    {
-      "group_number": 5,
-      "people": [
-        {
-          "No": 11,
-          "\u4e2d\u6587\u59d3\u540d": "\u5289\u61c9\u677a",
-          "timevalue": "2025-03-06 11:32:00"
-        }
-      ],
-      "npg": 1
-    },
-    {
-      "group_number": 6,
-      "people": [
-        {
-          "No": 12,
-          "\u4e2d\u6587\u59d3\u540d": "\u674e\u712f\u8b19",
-          "timevalue": "2025-03-06 11:32:01"
-        }
-      ],
-      "npg": 1
-    },
-    {
-      "group_number": 7,
-      "people": [
-        {
-          "No": 13,
-          "\u4e2d\u6587\u59d3\u540d": "\u6881\u6069\u665e",
-          "timevalue": "2025-03-06 11:32:02"
-        }
-      ],
-      "npg": 1
-    },
-    {
-      "group_number": 8,
-      "people": [
-        {
-          "No": 14,
-          "\u4e2d\u6587\u59d3\u540d": "\u6881\u96ef\u6a3a",
-          "timevalue": "2025-03-06 11:32:03"
-        },
-        {
-          "No": 16,
-          "\u4e2d\u6587\u59d3\u540d": "\u65bd\u51f1\u97fb",
-          "timevalue": "2025-03-06 11:32:06"
-        },
-        {
-          "No": 17,
-          "\u4e2d\u6587\u59d3\u540d": "\u9127\u5353\u8ed2",
-          "timevalue": "2025-03-06 11:32:07"
-        }
-      ],
-      "npg": 3
-    }
-  ],
-  "last_front_color": "#ee6b6e"
+    ],
+    "last_front_color": "#ee6b6e"
 }
