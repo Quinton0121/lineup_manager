@@ -69,7 +69,8 @@ def first_page(page, url_input, result_text, submit_button, next_page_button, da
 def update_checked_in_number(data, df=None):
     print("Checking how many people checked in...")
     if df is None:  # If no data frame provided, fetch it
-        df = read_google_sheet("https://docs.google.com/spreadsheets/d/1YoOGKltmbHjstO6RIRQeZ3eA1A-YoexhyW7oyvolohg/edit?gid=1519050975#gid=1519050975")
+        #df = read_google_sheet("https://docs.google.com/spreadsheets/d/1YoOGKltmbHjstO6RIRQeZ3eA1A-YoexhyW7oyvolohg/edit?gid=1519050975#gid=1519050975")
+        df = read_google_sheet("https://docs.google.com/spreadsheets/d/1Lg-SDFWTgYmEZRKJQdHaDJ6r4PNDFFSy/edit?gid=335596611#gid=335596611")
     if isinstance(df, str):  # If fetching failed
         print(f"Couldn’t get the sheet: {df}")
         return 0, None

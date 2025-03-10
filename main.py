@@ -12,7 +12,7 @@ def main(page: ft.Page):
         label="Google Sheet URL",
         width=500,
         hint_text="Paste your Google Sheet URL here",
-        value="https://docs.google.com/spreadsheets/d/1YoOGKltmbHjstO6RIRQeZ3eA1A-YoexhyW7oyvolohg/edit?gid=1519050975#gid=1519050975"
+        value="https://docs.google.com/spreadsheets/d/1Lg-SDFWTgYmEZRKJQdHaDJ6r4PNDFFSy/edit?gid=335596611#gid=335596611"
     )
     result_text = ft.Text()
     submit_button = ft.ElevatedButton(text="Submit", bgcolor="red")

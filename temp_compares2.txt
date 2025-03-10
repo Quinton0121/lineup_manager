@@ -1,4 +1,4 @@
-def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display, progress_box, error_message, latecomer_input):
+def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history, page, lineup_display, progress_box, error_message, latecomer_input, next_lineup_display, npg):
     print(f"Attempting to add latecomer No: {latecomer_no} (type: {type(latecomer_no)})")
     error_message.value = ""  # Clear any previous error message
     latecomer_input.value = ""  # Clear the input field immediately after button press
@@ -22,7 +22,7 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
         page.update()
         return
 
-    # Refresh checked-in data
+    # Refresh checked-in data to ensure df is fresh
     checked_in, df = update_checked_in_number(None)
     print(f"Refreshed DataFrame with {checked_in} checked-in rows")
 
@@ -62,69 +62,55 @@ def add_latecomer(latecomer_no, df, current_lineup, interviewed, lineup_history,
         page.update()
         return
 
-    # If all checks pass, proceed with confirmation
-    def confirm_jump(e):
-        if e.control.text == "Yes":
-            print(f"Confirmed: Adding No {latecomer_no} as latecomer")
-            latecomer_data = {
-                "No": latecomer_no,
-                "中文姓名": latecomer_row["中文姓名"].values[0] if "中文姓名" in latecomer_row else "N/A",
-                "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else "N/A",
-                "latecomer": True  # Mark as latecomer
-            }
-            # Add to current_lineup
-            current_lineup.append(latecomer_data)
-            interviewed.append(latecomer_no)
+    # Add the latecomer
+    print(f"Adding No {latecomer_no} as latecomer")
+    latecomer_data = {
+        "No": latecomer_no,
+        "中文姓名": latecomer_row["中文姓名"].values[0] if "中文姓名" in latecomer_row else "N/A",
+        "timevalue": latecomer_row["timevalue"].values[0] if "timevalue" in latecomer_row else "N/A",
+        "latecomer": True
+    }
 
-            # Update config.json
-            with open("config.json", "r") as config_file:
-                config = json.load(config_file)
-            config["current_lineup"] = current_lineup
-            config["interviewed"] = interviewed
+    # Add to current_lineup
+    current_lineup.append(latecomer_data)
+    if latecomer_no not in interviewed:
+        interviewed.append(latecomer_no)
 
-            # Update the last group in lineup_history instead of appending a new one
-            if lineup_history:
-                config["lineup_history"][-1]["people"] = current_lineup  # Update the last group's people list
-                print(f"Updated last group in lineup_history (Group #{config['lineup_history'][-1]['group_number']}): {[p['No'] for p in current_lineup]}")
-            else:
-                # If no lineup_history exists yet, create the first group
-                config["lineup_history"] = [{"group_number": 1, "people": current_lineup, "npg": len(current_lineup)}]
-                print("Created first group in lineup_history with latecomer")
+    # Update config
+    with open("config.json", "r") as config_file:
+        config = json.load(config_file)
+    config["current_lineup"] = current_lineup
+    config["interviewed"] = interviewed
+    if "lineup_history" not in config or not config["lineup_history"]:
+        config["lineup_history"] = [{
+            "group_number": 1,
+            "people": [latecomer_data],
+            "npg": config.get("npg", 1)
+        }]
+    else:
+        config["lineup_history"][-1]["people"] = current_lineup
+    with open("config.json", "w") as config_file:
+        json.dump(config, config_file, indent=4)
 
-            with open("config.json", "w") as config_file:
-                json.dump(config, config_file, indent=4)
-                print("Config updated with latecomer in current group")
+    # Update lineup_display
+    lineup_display.controls = [
+        ft.Text(
+            f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}",
+            color=ft.colors.RED if person.get('latecomer', False) else ft.colors.BLACK
+        )
+        for person in current_lineup
+    ]
 
-            # Update lineup_display with highlighting for latecomers
-            lineup_display.controls = [
-                ft.Text(
-                    f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}{' (Latecomer)' if person.get('latecomer', False) else ''}",
-                    color=ft.colors.RED if person.get('latecomer', False) else ft.colors.BLACK  # Highlight latecomers in red
-                )
-                for person in current_lineup
-            ]
-            print("Lineup display updated with latecomer highlighted")
+    # Recalculate next_potential_lineup with fresh data
+    next_potential_lineup = get_next_lineup(df, npg, interviewed) if not isinstance(df, str) else []
+    next_lineup_display.controls = [
+        ft.Text(f"No: {person['No']} - {person['中文姓名']} - {person['timevalue']}")
+        for person in next_potential_lineup
+    ] if next_potential_lineup else [ft.Text("No next lineup available")]
 
-            # Update progress bar
-            progress_box.content.controls[3] = create_progress_bar(checked_in, len(interviewed))
-            write_html()  # Update the HTML to reflect the new lineup
-            print("HTML updated")
-            page.update()
-        else:
-            print("Jump in line canceled")
-        dlg.open = False
-        page.update()
-
-    print(f"Showing confirmation dialog for No: {latecomer_no}")
-    dlg = ft.AlertDialog(
-        title=ft.Text("Confirm Jump In Line"),
-        content=ft.Text(f"Add No {latecomer_no} to the current lineup?"),
-        actions=[
-            ft.TextButton("Yes", on_click=confirm_jump),
-            ft.TextButton("No", on_click=lambda e: setattr(dlg, "open", False) or page.update()),
-        ],
-        actions_alignment=ft.MainAxisAlignment.END,
-    )
-    page.overlay.append(dlg)
-    dlg.open = True
+    # Update progress bar
+    progress_box.content.controls[3] = create_progress_bar(checked_in, len(interviewed))
+    write_html()
     page.update()
+    width=200,
+),
